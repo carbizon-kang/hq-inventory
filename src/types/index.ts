@@ -32,3 +32,48 @@ export type StockStatus = "정상" | "부족" | "위험";
 
 // 사용자 역할 타입
 export type UserRole = "본사" | "지사";
+
+// 입출고 이력 타입
+export interface Transaction {
+  id: string;
+  itemId: string;
+  branchId: string;
+  type: "입고" | "출고";
+  quantity: number;
+  date: string;
+  manager: string;
+  note: string;
+}
+
+// 카테고리 타입
+export interface Category {
+  id: string;
+  name: string;
+  isDefault: boolean; // 기본 카테고리는 삭제 불가
+}
+
+// 자산 상태 타입
+export type AssetStatus = "사용중" | "보관중" | "수리중" | "폐기";
+
+// 개별 자산 타입 (유형자산 라벨링)
+export interface Asset {
+  id: string;
+  assetNumber: string; // 예: NB-001, DK-001
+  name: string;
+  category: string;
+  branchId: string;
+  status: AssetStatus;
+  purchaseDate: string;
+  note: string;
+}
+
+// 자산 이동 이력 타입
+export interface AssetTransfer {
+  id: string;
+  assetId: string;
+  fromBranchId: string;
+  toBranchId: string;
+  transferDate: string;
+  manager: string;
+  reason: string;
+}

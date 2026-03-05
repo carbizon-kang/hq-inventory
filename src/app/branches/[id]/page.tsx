@@ -4,16 +4,22 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import StatCard from "@/components/ui/StatCard";
-import InventoryTable from "@/components/inventory/InventoryTable";
-import { MOCK_BRANCHES } from "@/lib/mockData";
-import { getStockStatus } from "@/lib/inventory";
-import { useInventory } from "@/lib/inventoryStore";
+import { useAssets } from "@/lib/assetStore";
+import { useBranches } from "@/lib/branchStore";
+
+const STATUS_COLORS: Record<string, string> = {
+  "사용중": "bg-green-100 text-green-700",
+  "보관중": "bg-blue-100 text-blue-700",
+  "수리중": "bg-yellow-100 text-yellow-700",
+  "폐기": "bg-red-100 text-red-700",
+};
 
 export default function BranchDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { items } = useInventory();
+  const { assets } = useAssets();
+  const { branches } = useBranches();
 
-  const branch = MOCK_BRANCHES.find((b) => b.id === id);
+  const branch = branches.find((b) => b.id === id);
   if (!branch) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -25,10 +31,11 @@ export default function BranchDetailPage() {
     );
   }
 
-  const branchItems = items.filter((i) => i.branchId === id);
-  const normalCount = branchItems.filter((i) => getStockStatus(i) === "정상").length;
-  const lowCount = branchItems.filter((i) => getStockStatus(i) === "부족").length;
-  const dangerCount = branchItems.filter((i) => getStockStatus(i) === "위험").length;
+  const branchAssets = assets.filter((a) => a.branchId === id);
+  const total = branchAssets.length;
+  const inUse = branchAssets.filter((a) => a.status === "사용중").length;
+  const inStorage = branchAssets.filter((a) => a.status === "보관중").length;
+  const inRepair = branchAssets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,13 +59,58 @@ export default function BranchDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard title="전체 품목" value={branchItems.length} sub="관리 중인 품목" color="blue" />
-          <StatCard title="정상" value={normalCount} sub="기준 재고 이상" color="green" />
-          <StatCard title="부족" value={lowCount} sub="최소 재고 50% 이하" color="yellow" />
-          <StatCard title="위험" value={dangerCount} sub="즉시 보충 필요" color="red" />
+          <StatCard title="전체 자산" value={total} sub="보유 자산 합계" color="blue" />
+          <StatCard title="사용중" value={inUse} sub="현재 사용 중" color="green" />
+          <StatCard title="보관중" value={inStorage} sub="미배치 자산" color="blue" />
+          <StatCard title="수리/폐기" value={inRepair} sub="점검 필요" color="red" />
         </div>
 
-        <InventoryTable items={branchItems} branches={MOCK_BRANCHES} hideBranchFilter />
+        {/* 자산 목록 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-4 py-3 font-medium text-gray-500">자산번호</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">품명</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">카테고리</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">상태</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">구매일</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {branchAssets.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-10 text-gray-400">
+                    이 지사에 등록된 자산이 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                branchAssets.map((asset) => (
+                  <tr key={asset.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-blue-700 font-medium">
+                      <Link href={`/assets/${asset.id}`} className="hover:underline">
+                        {asset.assetNumber}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{asset.name}</td>
+                    <td className="px-4 py-3 text-gray-500">{asset.category}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[asset.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {asset.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{asset.purchaseDate}</td>
+                    <td className="px-4 py-3 text-gray-400">{asset.note || "-"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+          <p className="px-4 py-2 text-xs text-gray-400 border-t border-gray-50">
+            총 {branchAssets.length}개 자산
+          </p>
+        </div>
       </main>
     </div>
   );

@@ -3,17 +3,21 @@
 import Header from "@/components/layout/Header";
 import StatCard from "@/components/ui/StatCard";
 import StockBadge from "@/components/ui/StockBadge";
-import { MOCK_BRANCHES } from "@/lib/mockData";
 import { getLowStockItems, getStockStatus, getBranchSummary } from "@/lib/inventory";
 import { useInventory } from "@/lib/inventoryStore";
+import { useBranches } from "@/lib/branchStore";
 
 export default function DashboardPage() {
   const { items } = useInventory();
+  const { branches } = useBranches();
+
+  // 오늘 날짜 동적 생성
+  const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
   const totalItems = items.length;
   const lowStockItems = getLowStockItems(items);
   const dangerItems = items.filter((item) => getStockStatus(item) === "위험");
-  const branchCount = MOCK_BRANCHES.length;
+  const branchCount = branches.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -22,7 +26,7 @@ export default function DashboardPage() {
         {/* 페이지 제목 */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-          <p className="text-sm text-gray-500 mt-1">2026년 3월 5일 기준 전체 재고 현황</p>
+          <p className="text-sm text-gray-500 mt-1">{today} 기준 전체 재고 현황</p>
         </div>
 
         {/* 요약 카드 */}
@@ -45,7 +49,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-400 text-center py-8">부족 재고 없음</p>
               ) : (
                 lowStockItems.map((item) => {
-                  const branch = MOCK_BRANCHES.find((b) => b.id === item.branchId);
+                  const branch = branches.find((b) => b.id === item.branchId);
                   const status = getStockStatus(item);
                   return (
                     <div key={item.id} className="px-5 py-3 flex items-center justify-between">
@@ -75,7 +79,7 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-400 mt-0.5">지사별 품목 수 및 부족 재고</p>
             </div>
             <div className="divide-y divide-gray-50">
-              {MOCK_BRANCHES.map((branch) => {
+              {branches.map((branch) => {
                 const { total, lowStock } = getBranchSummary(items, branch.id);
                 const ratio = total > 0 ? Math.round(((total - lowStock) / total) * 100) : 100;
                 return (

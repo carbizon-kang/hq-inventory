@@ -9,6 +9,8 @@ export const STOCK_DANGER_THRESHOLD = 0.2;  // 20% 이하: 위험
 // 네비게이션 메뉴
 export const NAV_ITEMS = [
   { label: "대시보드", href: "/dashboard" },
-  { label: "재고 현황", href: "/inventory" },
+  { label: "자산 현황", href: "/inventory" },
+  { label: "유형자산", href: "/assets" },
   { label: "지사 관리", href: "/branches" },
+  { label: "설정", href: "/settings" },
 ] as const;

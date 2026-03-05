@@ -1,0 +1,123 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import Header from "@/components/layout/Header";
+import { useAssets } from "@/lib/assetStore";
+import { useBranches } from "@/lib/branchStore";
+
+const STATUS_COLORS: Record<string, string> = {
+  "사용중": "bg-green-100 text-green-700",
+  "보관중": "bg-blue-100 text-blue-700",
+  "수리중": "bg-yellow-100 text-yellow-700",
+  "폐기": "bg-red-100 text-red-700",
+};
+
+export default function AssetDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { assets, getAssetTransfers } = useAssets();
+  const { branches } = useBranches();
+
+  const asset = assets.find((a) => a.id === id);
+  const transfers = getAssetTransfers(id);
+
+  const getBranchName = (branchId: string) =>
+    branches.find((b) => b.id === branchId)?.name ?? branchId;
+
+  if (!asset) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <Link href="/assets" className="text-sm text-blue-600 hover:underline mb-4 inline-block">
+            ← 자산 목록으로
+          </Link>
+          <p className="text-gray-500 text-center py-16">존재하지 않는 자산입니다.</p>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <div>
+          <Link href="/assets" className="text-sm text-blue-600 hover:underline mb-2 inline-block">
+            ← 자산 목록으로
+          </Link>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{asset.name}</h1>
+              <p className="text-sm font-mono text-blue-600 mt-0.5">{asset.assetNumber}</p>
+            </div>
+            <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${STATUS_COLORS[asset.status] ?? "bg-gray-100 text-gray-600"}`}>
+              {asset.status}
+            </span>
+          </div>
+        </div>
+
+        {/* 자산 정보 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-base font-semibold text-gray-800 mb-4">자산 정보</h2>
+          <dl className="space-y-3 text-sm">
+            {[
+              { label: "자산번호", value: asset.assetNumber, mono: true },
+              { label: "품명", value: asset.name },
+              { label: "카테고리", value: asset.category },
+              { label: "현재 지사", value: getBranchName(asset.branchId) },
+              { label: "상태", value: asset.status },
+              { label: "구매일", value: asset.purchaseDate },
+              { label: "비고", value: asset.note || "-" },
+            ].map(({ label, value, mono }) => (
+              <div key={label} className="flex gap-4">
+                <dt className="w-24 text-gray-400 shrink-0">{label}</dt>
+                <dd className={`font-medium text-gray-800 ${mono ? "font-mono" : ""}`}>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100">
+            <Link
+              href={`/assets/${asset.id}/edit`}
+              className="flex-1 text-center bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              자산 수정
+            </Link>
+            <Link
+              href={`/assets/${asset.id}/transfer`}
+              className="flex-1 text-center bg-white border border-blue-600 text-blue-600 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors"
+            >
+              지사 이동
+            </Link>
+          </div>
+        </div>
+
+        {/* 이동 이력 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-base font-semibold text-gray-800 mb-4">이동 이력</h2>
+          {transfers.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">이동 이력이 없습니다.</p>
+          ) : (
+            <ol className="relative border-l-2 border-gray-100 space-y-4 pl-5">
+              {transfers.map((t) => (
+                <li key={t.id} className="relative">
+                  <span className="absolute -left-[22px] top-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white" />
+                  <p className="text-xs text-gray-400 mb-0.5">{t.transferDate}</p>
+                  <p className="text-sm font-medium text-gray-800">
+                    <span className="text-gray-600">{getBranchName(t.fromBranchId)}</span>
+                    <span className="mx-2 text-blue-400">→</span>
+                    <span className="text-blue-700">{getBranchName(t.toBranchId)}</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    담당: {t.manager}
+                    {t.reason && ` · ${t.reason}`}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

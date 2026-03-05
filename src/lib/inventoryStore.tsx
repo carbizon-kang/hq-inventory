@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { InventoryItem } from "@/types";
 import { MOCK_INVENTORY } from "./mockData";
+
+const LS_KEY = "hq_inventory";
 
 interface InventoryStore {
   items: InventoryItem[];
@@ -14,7 +16,17 @@ interface InventoryStore {
 const InventoryContext = createContext<InventoryStore | null>(null);
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<InventoryItem[]>(MOCK_INVENTORY);
+  const [items, setItems] = useState<InventoryItem[]>(() => {
+    // SSR 환경에서는 Mock 데이터 반환
+    if (typeof window === "undefined") return MOCK_INVENTORY;
+    const saved = localStorage.getItem(LS_KEY);
+    return saved ? JSON.parse(saved) : MOCK_INVENTORY;
+  });
+
+  // items 변경 시 localStorage에 자동 저장
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify(items));
+  }, [items]);
 
   function addItem(item: Omit<InventoryItem, "id">) {
     const newItem: InventoryItem = { ...item, id: `i${Date.now()}` };

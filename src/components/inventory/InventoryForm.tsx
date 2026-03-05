@@ -2,11 +2,11 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { InventoryItem, InventoryCategory } from "@/types";
+import { InventoryItem } from "@/types";
 import { useInventory } from "@/lib/inventoryStore";
-import { MOCK_BRANCHES } from "@/lib/mockData";
+import { useBranches } from "@/lib/branchStore";
+import { useCategories } from "@/lib/categoryStore";
 
-const CATEGORIES: InventoryCategory[] = ["사무용품", "전산장비", "청소용품", "비품", "기타"];
 const UNIT_PRESETS = ["개", "박스", "타", "대", "세트", "권", "롤"];
 
 interface InventoryFormProps {
@@ -17,15 +17,17 @@ export default function InventoryForm({ item }: InventoryFormProps) {
   const isEdit = !!item;
   const router = useRouter();
   const { addItem, updateItem } = useInventory();
+  const { branches } = useBranches();
+  const { categories } = useCategories();
 
   const today = new Date().toISOString().split("T")[0];
 
   // 폼 상태
   const [name, setName] = useState(item?.name ?? "");
-  const [category, setCategory] = useState<InventoryCategory>(
-    (item?.category as InventoryCategory) ?? "사무용품"
+  const [category, setCategory] = useState(
+    item?.category ?? categories[0]?.name ?? "사무용품"
   );
-  const [branchId, setBranchId] = useState(item?.branchId ?? MOCK_BRANCHES[0].id);
+  const [branchId, setBranchId] = useState(item?.branchId ?? branches[0]?.id ?? "");
   const [quantity, setQuantity] = useState(String(item?.quantity ?? ""));
   const [unit, setUnit] = useState(item?.unit ?? "개");
   const [customUnit, setCustomUnit] = useState(
@@ -98,11 +100,11 @@ export default function InventoryForm({ item }: InventoryFormProps) {
           </label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as InventoryCategory)}
+            onChange={(e) => setCategory(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -115,7 +117,7 @@ export default function InventoryForm({ item }: InventoryFormProps) {
             onChange={(e) => setBranchId(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
-            {MOCK_BRANCHES.map((b) => (
+            {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
