@@ -42,6 +42,7 @@ export default function InventoryPage() {
   const totalAssets = assets.length;
   const totalKinds = groups.length;
   const inUse = assets.filter((a) => a.status === "사용중").length;
+  const inStorage = assets.filter((a) => a.status === "보관중").length;
   const inRepair = assets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
 
   return (
@@ -53,10 +54,11 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 mt-1">품목별·지사별 자산 보유 현황 — 유형자산 등록 시 자동 집계됩니다.</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <StatCard title="전체 자산" value={totalAssets} sub="등록된 자산 합계" color="blue" />
           <StatCard title="품목 종류" value={totalKinds} sub="품명 기준" color="blue" />
           <StatCard title="사용중" value={inUse} sub="현재 사용 중" color="green" />
+          <StatCard title="보관중" value={inStorage} sub="미배치 자산" color="yellow" />
           <StatCard title="수리/폐기" value={inRepair} sub="점검 필요" color="red" />
         </div>
 

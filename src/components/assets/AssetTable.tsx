@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Asset, Branch } from "@/types";
 import { useAssets } from "@/lib/assetStore";
+import { useCategories } from "@/lib/categoryStore";
 
 const STATUS_COLORS: Record<string, string> = {
   "사용중": "bg-green-100 text-green-700",
@@ -19,55 +20,107 @@ interface AssetTableProps {
 
 export default function AssetTable({ assets, branches }: AssetTableProps) {
   const { deleteAsset } = useAssets();
+  const { categories } = useCategories();
   const [search, setSearch] = useState("");
+  const [filterName, setFilterName] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const getBranchName = (id: string) => branches.find((b) => b.id === id)?.name ?? id;
 
+  // 품명 목록 (중복 제거)
+  const uniqueNames = Array.from(new Set(assets.map((a) => a.name))).sort();
+
   const filtered = assets.filter((a) => {
     const matchSearch =
       !search ||
       a.name.includes(search) ||
-      a.assetNumber.includes(search) ||
-      a.category.includes(search);
+      a.assetNumber.includes(search);
+    const matchName = !filterName || a.name === filterName;
+    const matchCategory = !filterCategory || a.category === filterCategory;
     const matchBranch = !filterBranch || a.branchId === filterBranch;
     const matchStatus = !filterStatus || a.status === filterStatus;
-    return matchSearch && matchBranch && matchStatus;
+    return matchSearch && matchName && matchCategory && matchBranch && matchStatus;
   });
+
+  const hasFilter = search || filterName || filterCategory || filterBranch || filterStatus;
+
+  function resetFilters() {
+    setSearch("");
+    setFilterName("");
+    setFilterCategory("");
+    setFilterBranch("");
+    setFilterStatus("");
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-      {/* 필터 */}
-      <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3">
+      {/* 필터 영역 */}
+      <div className="p-4 border-b border-gray-100 space-y-3">
+        {/* 검색창 */}
         <input
           type="text"
-          placeholder="자산번호 / 품명 / 카테고리 검색"
+          placeholder="자산번호 또는 품명 검색"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-40 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
-        <select
-          value={filterBranch}
-          onChange={(e) => setFilterBranch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          <option value="">전체 지사</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          <option value="">전체 상태</option>
-          {["사용중", "보관중", "수리중", "폐기"].map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+        {/* 드롭다운 필터 */}
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">전체 품목</option>
+            {uniqueNames.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">전체 카테고리</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterBranch}
+            onChange={(e) => setFilterBranch(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">전체 지사</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">전체 상태</option>
+            {["사용중", "보관중", "수리중", "폐기"].map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          {hasFilter && (
+            <button
+              onClick={resetFilters}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+            >
+              필터 초기화
+            </button>
+          )}
+          <span className="ml-auto text-xs text-gray-400 self-center">
+            {filtered.length}개 / 전체 {assets.length}개
+          </span>
+        </div>
       </div>
 
       {/* 테이블 */}
@@ -89,7 +142,7 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-10 text-gray-400 text-sm">
-                  등록된 자산이 없습니다.
+                  {hasFilter ? "검색 결과가 없습니다." : "등록된 자산이 없습니다."}
                 </td>
               </tr>
             ) : (
@@ -137,9 +190,6 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
             )}
           </tbody>
         </table>
-      </div>
-      <div className="px-4 py-2 text-xs text-gray-400 border-t border-gray-50">
-        총 {filtered.length}개 자산
       </div>
     </div>
   );
