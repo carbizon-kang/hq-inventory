@@ -64,6 +64,8 @@ export interface Asset {
   branchId: string;
   status: AssetStatus;
   purchaseDate: string;
+  purchasePrice: number;     // 매입금액 (0 = 미입력)
+  depreciationYears: number; // 감가상각 내용연수 (0 = 미설정)
   note: string;
 }
 

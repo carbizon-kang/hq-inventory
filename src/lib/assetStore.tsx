@@ -29,6 +29,8 @@ function rowToAsset(r: Record<string, unknown>): Asset {
     branchId: r.branch_id as string,
     status: r.status as Asset["status"],
     purchaseDate: r.purchase_date as string,
+    purchasePrice: (r.purchase_price as number) || 0,
+    depreciationYears: (r.depreciation_years as number) || 0,
     note: (r.note as string) || "",
   };
 }
@@ -93,6 +95,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       branch_id: asset.branchId,
       status: asset.status,
       purchase_date: asset.purchaseDate,
+      purchase_price: asset.purchasePrice,
+      depreciation_years: asset.depreciationYears,
       note: asset.note,
     });
   }
@@ -105,6 +109,8 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     if (data.branchId !== undefined) row.branch_id = data.branchId;
     if (data.status !== undefined) row.status = data.status;
     if (data.purchaseDate !== undefined) row.purchase_date = data.purchaseDate;
+    if (data.purchasePrice !== undefined) row.purchase_price = data.purchasePrice;
+    if (data.depreciationYears !== undefined) row.depreciation_years = data.depreciationYears;
     if (data.note !== undefined) row.note = data.note;
     await supabase.from("assets").update(row).eq("id", id);
   }

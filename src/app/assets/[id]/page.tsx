@@ -33,6 +33,18 @@ export default function AssetDetailPage() {
   const getBranchName = (branchId: string) =>
     branches.find((b) => b.id === branchId)?.name ?? branchId;
 
+  // 정액법 감가상각 계산
+  function calcDepreciation(asset: { purchasePrice: number; depreciationYears: number; purchaseDate: string }) {
+    if (!asset.purchasePrice || !asset.depreciationYears) return null;
+    const annual = asset.purchasePrice / asset.depreciationYears;
+    const msElapsed = Date.now() - new Date(asset.purchaseDate).getTime();
+    const yearsElapsed = msElapsed / (1000 * 60 * 60 * 24 * 365.25);
+    const accumulated = Math.min(asset.purchasePrice, annual * yearsElapsed);
+    const bookValue = Math.max(0, asset.purchasePrice - accumulated);
+    const done = yearsElapsed >= asset.depreciationYears;
+    return { annual, yearsElapsed, accumulated, bookValue, done };
+  }
+
   function startEdit(t: { id: string; transferDate: string; manager: string; reason: string }) {
     setEditingId(t.id);
     setEditDate(t.transferDate);
@@ -131,6 +143,59 @@ export default function AssetDetailPage() {
             </Link>
           </div>
         </div>
+
+        {/* 감가상각 */}
+        {(() => {
+          const dep = calcDepreciation(asset);
+          if (!dep) return null;
+          const fmt = (n: number) => Math.round(n).toLocaleString();
+          return (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-gray-800">감가상각 현황 (정액법)</h2>
+                {dep.done && (
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-medium">감가상각 완료</span>
+                )}
+              </div>
+              {/* 진행 바 */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <span>감가상각 진행률</span>
+                  <span>{Math.min(100, Math.round((dep.yearsElapsed / asset.depreciationYears) * 100))}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${dep.done ? "bg-gray-400" : "bg-blue-500"}`}
+                    style={{ width: `${Math.min(100, (dep.yearsElapsed / asset.depreciationYears) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              {/* 수치 */}
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <dt className="text-xs text-gray-400 mb-1">매입금액</dt>
+                  <dd className="font-semibold text-gray-800">{fmt(asset.purchasePrice)}원</dd>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <dt className="text-xs text-gray-400 mb-1">연간 감가상각액</dt>
+                  <dd className="font-semibold text-gray-800">{fmt(dep.annual)}원</dd>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <dt className="text-xs text-gray-400 mb-1">누적 감가상각액</dt>
+                  <dd className="font-semibold text-orange-600">{fmt(dep.accumulated)}원</dd>
+                </div>
+                <div className={`rounded-lg p-3 ${dep.done ? "bg-gray-50" : "bg-blue-50"}`}>
+                  <dt className="text-xs text-gray-400 mb-1">현재 장부가액</dt>
+                  <dd className={`font-bold text-lg ${dep.done ? "text-gray-500" : "text-blue-700"}`}>{fmt(dep.bookValue)}원</dd>
+                </div>
+              </dl>
+              <p className="text-xs text-gray-400 mt-3">
+                내용연수 {asset.depreciationYears}년 · 경과 {dep.yearsElapsed.toFixed(1)}년
+                {!dep.done && ` · 잔존 ${(asset.depreciationYears - dep.yearsElapsed).toFixed(1)}년`}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* 이동 이력 */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">

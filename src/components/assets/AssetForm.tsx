@@ -87,6 +87,8 @@ export default function AssetForm({ asset }: AssetFormProps) {
   const [branchId, setBranchId] = useState(asset?.branchId ?? branches[0]?.id ?? "");
   const [status, setStatus] = useState<AssetStatus>(asset?.status ?? "사용중");
   const [purchaseDate, setPurchaseDate] = useState(asset?.purchaseDate ?? new Date().toISOString().split("T")[0]);
+  const [purchasePrice, setPurchasePrice] = useState(asset?.purchasePrice ? String(asset.purchasePrice) : "");
+  const [depreciationYears, setDepreciationYears] = useState(asset?.depreciationYears ? String(asset.depreciationYears) : "");
   const [note, setNote] = useState(asset?.note ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -134,6 +136,8 @@ export default function AssetForm({ asset }: AssetFormProps) {
       branchId,
       status,
       purchaseDate,
+      purchasePrice: purchasePrice ? parseInt(purchasePrice.replace(/,/g, ""), 10) : 0,
+      depreciationYears: depreciationYears ? parseInt(depreciationYears, 10) : 0,
       note: note.trim(),
     };
 
@@ -282,6 +286,38 @@ export default function AssetForm({ asset }: AssetFormProps) {
             }`}
           />
           {errors.purchaseDate && <p className="text-xs text-red-500 mt-1">{errors.purchaseDate}</p>}
+        </div>
+      </div>
+
+      {/* 매입금액 + 감가상각 년수 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">매입금액 (원)</label>
+          <input
+            type="text"
+            value={purchasePrice}
+            onChange={(e) => setPurchasePrice(e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="예: 1500000"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          {purchasePrice && (
+            <p className="text-xs text-gray-400 mt-1">
+              {parseInt(purchasePrice, 10).toLocaleString()}원
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">내용연수 (년)</label>
+          <input
+            type="number"
+            value={depreciationYears}
+            onChange={(e) => setDepreciationYears(e.target.value)}
+            placeholder="예: 5"
+            min={1}
+            max={50}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          <p className="text-xs text-gray-400 mt-1">정액법 감가상각 적용</p>
         </div>
       </div>
 
