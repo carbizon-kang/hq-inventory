@@ -30,7 +30,7 @@ export default function BranchForm({ branch }: BranchFormProps) {
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
@@ -42,9 +42,9 @@ export default function BranchForm({ branch }: BranchFormProps) {
     };
 
     if (isEdit) {
-      updateBranch(branch.id, payload);
+      await updateBranch(branch.id, payload);
     } else {
-      addBranch(payload);
+      await addBranch(payload);
     }
     router.push("/branches");
   }

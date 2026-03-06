@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  function handleAdd(e: FormEvent) {
+  async function handleAdd(e: FormEvent) {
     e.preventDefault();
     const trimmed = newName.trim();
     if (!trimmed) {
@@ -21,7 +21,7 @@ export default function SettingsPage() {
       setError("이미 존재하는 카테고리입니다.");
       return;
     }
-    addCategory(trimmed);
+    await addCategory(trimmed);
     setNewName("");
     setError("");
   }

@@ -2,44 +2,58 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Category } from "@/types";
-import { INITIAL_CATEGORIES } from "./mockData";
-
-const LS_KEY = "hq_categories";
+import { supabase } from "./supabase";
 
 interface CategoryContextType {
   categories: Category[];
-  addCategory: (name: string) => void;
-  deleteCategory: (id: string) => void;
+  loading: boolean;
+  addCategory: (name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
 const CategoryContext = createContext<CategoryContextType | null>(null);
 
 export function CategoryProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<Category[]>(() => {
-    if (typeof window === "undefined") return INITIAL_CATEGORIES;
-    const saved = localStorage.getItem(LS_KEY);
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(categories));
-  }, [categories]);
+    loadCategories();
 
-  function addCategory(name: string) {
-    const newCat: Category = {
-      id: `cat${Date.now()}`,
-      name: name.trim(),
-      isDefault: false,
-    };
-    setCategories((prev) => [...prev, newCat]);
+    const channel = supabase
+      .channel("categories-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, loadCategories)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  async function loadCategories() {
+    const { data } = await supabase.from("categories").select("*").order("name");
+    if (data) {
+      setCategories(data.map((r) => ({
+        id: r.id,
+        name: r.name,
+        isDefault: r.is_default,
+      })));
+    }
+    setLoading(false);
   }
 
-  function deleteCategory(id: string) {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+  async function addCategory(name: string) {
+    await supabase.from("categories").insert({
+      id: `cat${Date.now()}`,
+      name: name.trim(),
+      is_default: false,
+    });
+  }
+
+  async function deleteCategory(id: string) {
+    await supabase.from("categories").delete().eq("id", id);
   }
 
   return (
-    <CategoryContext.Provider value={{ categories, addCategory, deleteCategory }}>
+    <CategoryContext.Provider value={{ categories, loading, addCategory, deleteCategory }}>
       {children}
     </CategoryContext.Provider>
   );

@@ -36,11 +36,11 @@ export default function TransferForm({ asset }: TransferFormProps) {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
-    addTransfer({
+    await addTransfer({
       assetId: asset.id,
       fromBranchId: asset.branchId,
       toBranchId,

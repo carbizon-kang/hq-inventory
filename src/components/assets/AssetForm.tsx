@@ -123,7 +123,7 @@ export default function AssetForm({ asset }: AssetFormProps) {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
@@ -138,9 +138,9 @@ export default function AssetForm({ asset }: AssetFormProps) {
     };
 
     if (isEdit) {
-      updateAsset(asset.id, payload);
+      await updateAsset(asset.id, payload);
     } else {
-      addAsset(payload);
+      await addAsset(payload);
     }
     router.push("/assets");
   }

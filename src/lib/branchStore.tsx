@@ -2,45 +2,54 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Branch } from "@/types";
-import { MOCK_BRANCHES } from "./mockData";
+import { supabase } from "./supabase";
 
-const LS_KEY = "hq_branches";
-
-interface BranchStore {
+interface BranchContextType {
   branches: Branch[];
-  addBranch: (branch: Omit<Branch, "id">) => void;
-  updateBranch: (id: string, updated: Partial<Branch>) => void;
-  deleteBranch: (id: string) => void;
+  loading: boolean;
+  addBranch: (b: Omit<Branch, "id">) => Promise<void>;
+  updateBranch: (id: string, data: Partial<Omit<Branch, "id">>) => Promise<void>;
+  deleteBranch: (id: string) => Promise<void>;
 }
 
-const BranchContext = createContext<BranchStore | null>(null);
+const BranchContext = createContext<BranchContextType | null>(null);
 
 export function BranchProvider({ children }: { children: ReactNode }) {
-  const [branches, setBranches] = useState<Branch[]>(() => {
-    if (typeof window === "undefined") return MOCK_BRANCHES;
-    const saved = localStorage.getItem(LS_KEY);
-    return saved ? JSON.parse(saved) : MOCK_BRANCHES;
-  });
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(branches));
-  }, [branches]);
+    loadBranches();
 
-  function addBranch(branch: Omit<Branch, "id">) {
-    const newBranch: Branch = { ...branch, id: `b${Date.now()}` };
-    setBranches((prev) => [...prev, newBranch]);
+    // 실시간 동기화: 다른 브라우저/지사에서 변경 시 자동 반영
+    const channel = supabase
+      .channel("branches-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, loadBranches)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  async function loadBranches() {
+    const { data } = await supabase.from("branches").select("*").order("name");
+    if (data) setBranches(data as Branch[]);
+    setLoading(false);
   }
 
-  function updateBranch(id: string, updated: Partial<Branch>) {
-    setBranches((prev) => prev.map((b) => (b.id === id ? { ...b, ...updated } : b)));
+  async function addBranch(b: Omit<Branch, "id">) {
+    await supabase.from("branches").insert({ ...b, id: `b${Date.now()}` });
   }
 
-  function deleteBranch(id: string) {
-    setBranches((prev) => prev.filter((b) => b.id !== id));
+  async function updateBranch(id: string, data: Partial<Omit<Branch, "id">>) {
+    await supabase.from("branches").update(data).eq("id", id);
+  }
+
+  async function deleteBranch(id: string) {
+    await supabase.from("branches").delete().eq("id", id);
   }
 
   return (
-    <BranchContext.Provider value={{ branches, addBranch, updateBranch, deleteBranch }}>
+    <BranchContext.Provider value={{ branches, loading, addBranch, updateBranch, deleteBranch }}>
       {children}
     </BranchContext.Provider>
   );
