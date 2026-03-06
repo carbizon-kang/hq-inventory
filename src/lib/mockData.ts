@@ -44,14 +44,14 @@ export const INITIAL_CATEGORIES: Category[] = [
 
 // 자산 샘플 데이터
 export const MOCK_ASSETS: Asset[] = [
-  { id: "a1", assetNumber: "NB-001", name: "노트북", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-01-15", note: "대표이사용" },
-  { id: "a2", assetNumber: "NB-002", name: "노트북", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-01-15", note: "기획팀" },
-  { id: "a3", assetNumber: "NB-003", name: "노트북", category: "전산장비", branchId: "b1", status: "사용중", purchaseDate: "2024-03-01", note: "부산지사 팀장" },
-  { id: "a4", assetNumber: "DK-001", name: "책상", category: "비품", branchId: "hq", status: "사용중", purchaseDate: "2023-06-01", note: "" },
-  { id: "a5", assetNumber: "DK-002", name: "책상", category: "비품", branchId: "b1", status: "사용중", purchaseDate: "2023-06-01", note: "" },
-  { id: "a6", assetNumber: "MN-001", name: "모니터", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-02-10", note: "27인치" },
-  { id: "a7", assetNumber: "MN-002", name: "모니터", category: "전산장비", branchId: "b2", status: "보관중", purchaseDate: "2023-11-20", note: "" },
-  { id: "a8", assetNumber: "PR-001", name: "복합기", category: "전산장비", branchId: "hq", status: "수리중", purchaseDate: "2022-09-05", note: "A/S 접수중" },
+  { id: "a1", assetNumber: "NB-001", name: "노트북", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-01-15", purchasePrice: 0, depreciationYears: 0, note: "대표이사용" },
+  { id: "a2", assetNumber: "NB-002", name: "노트북", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-01-15", purchasePrice: 0, depreciationYears: 0, note: "기획팀" },
+  { id: "a3", assetNumber: "NB-003", name: "노트북", category: "전산장비", branchId: "b1", status: "사용중", purchaseDate: "2024-03-01", purchasePrice: 0, depreciationYears: 0, note: "부산지사 팀장" },
+  { id: "a4", assetNumber: "DK-001", name: "책상", category: "비품", branchId: "hq", status: "사용중", purchaseDate: "2023-06-01", purchasePrice: 0, depreciationYears: 0, note: "" },
+  { id: "a5", assetNumber: "DK-002", name: "책상", category: "비품", branchId: "b1", status: "사용중", purchaseDate: "2023-06-01", purchasePrice: 0, depreciationYears: 0, note: "" },
+  { id: "a6", assetNumber: "MN-001", name: "모니터", category: "전산장비", branchId: "hq", status: "사용중", purchaseDate: "2024-02-10", purchasePrice: 0, depreciationYears: 0, note: "27인치" },
+  { id: "a7", assetNumber: "MN-002", name: "모니터", category: "전산장비", branchId: "b2", status: "보관중", purchaseDate: "2023-11-20", purchasePrice: 0, depreciationYears: 0, note: "" },
+  { id: "a8", assetNumber: "PR-001", name: "복합기", category: "전산장비", branchId: "hq", status: "수리중", purchaseDate: "2022-09-05", purchasePrice: 0, depreciationYears: 0, note: "A/S 접수중" },
 ];
 
 // 자산 이동 이력 샘플 데이터
