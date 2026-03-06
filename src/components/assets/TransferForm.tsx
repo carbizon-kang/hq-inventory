@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Asset } from "@/types";
 import { useAssets } from "@/lib/assetStore";
@@ -23,6 +23,7 @@ export default function TransferForm({ asset }: TransferFormProps) {
   const [manager, setManager] = useState("");
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const fromBranch = branches.find((b) => b.id === asset.branchId);
   const toBranch = branches.find((b) => b.id === toBranchId);
@@ -36,20 +37,24 @@ export default function TransferForm({ asset }: TransferFormProps) {
     return Object.keys(e).length === 0;
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-
-    await addTransfer({
-      assetId: asset.id,
-      fromBranchId: asset.branchId,
-      toBranchId,
-      transferDate,
-      manager: manager.trim(),
-      reason: reason.trim(),
-    });
-
-    router.push(`/assets/${asset.id}`);
+    setSubmitting(true);
+    try {
+      await addTransfer({
+        assetId: asset.id,
+        fromBranchId: asset.branchId,
+        toBranchId,
+        transferDate,
+        manager: manager.trim(),
+        reason: reason.trim(),
+      });
+      router.push(`/assets/${asset.id}`);
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : "이동 처리 중 오류가 발생했습니다." });
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -137,14 +142,19 @@ export default function TransferForm({ asset }: TransferFormProps) {
         />
       </div>
 
+      {/* 에러 메시지 */}
+      {errors.submit && (
+        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errors.submit}</p>
+      )}
+
       {/* 버튼 */}
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={otherBranches.length === 0}
+          disabled={otherBranches.length === 0 || submitting}
           className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          이동 처리
+          {submitting ? "처리 중..." : "이동 처리"}
         </button>
         <button
           type="button"

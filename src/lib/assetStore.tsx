@@ -112,19 +112,27 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   }
 
   async function addTransfer(transfer: Omit<AssetTransfer, "id">) {
-    // 이동 이력 기록 + 자산 지사 업데이트를 동시에 처리
-    await Promise.all([
-      supabase.from("asset_transfers").insert({
-        id: `tr${Date.now()}`,
-        asset_id: transfer.assetId,
-        from_branch_id: transfer.fromBranchId,
-        to_branch_id: transfer.toBranchId,
-        transfer_date: transfer.transferDate,
-        manager: transfer.manager,
-        reason: transfer.reason,
-      }),
-      supabase.from("assets").update({ branch_id: transfer.toBranchId }).eq("id", transfer.assetId),
-    ]);
+    // 이동 이력 기록
+    const { error: transferError } = await supabase.from("asset_transfers").insert({
+      id: `tr${Date.now()}`,
+      asset_id: transfer.assetId,
+      from_branch_id: transfer.fromBranchId,
+      to_branch_id: transfer.toBranchId,
+      transfer_date: transfer.transferDate,
+      manager: transfer.manager,
+      reason: transfer.reason,
+    });
+    if (transferError) throw new Error(`이동 이력 저장 실패: ${transferError.message}`);
+
+    // 자산 지사 업데이트
+    const { error: assetError } = await supabase
+      .from("assets")
+      .update({ branch_id: transfer.toBranchId })
+      .eq("id", transfer.assetId);
+    if (assetError) throw new Error(`자산 지사 업데이트 실패: ${assetError.message}`);
+
+    // Realtime에 의존하지 않고 직접 최신 데이터 로드
+    await Promise.all([loadAssets(), loadTransfers()]);
   }
 
   function getAssetTransfers(assetId: string) {
