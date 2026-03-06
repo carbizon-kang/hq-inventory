@@ -1,5 +1,5 @@
 // 앱 기본 설정
-export const APP_NAME = "HQ Inventory";
+export const APP_NAME = "HQ WV";
 export const APP_DESCRIPTION = "본사 및 지사 통합 재고 관리 시스템";
 
 // 재고 상태 기준 (비율)

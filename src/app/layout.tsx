@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HQ Inventory - 재고 관리 시스템",
+  title: "HQ WV - 재고 관리 시스템",
   description: "본사 및 지사 통합 재고 관리 솔루션",
 };
 
