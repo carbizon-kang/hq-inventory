@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAssets } from "@/lib/assetStore";
 import { useBranches } from "@/lib/branchStore";
@@ -15,14 +16,53 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { assets, getAssetTransfers } = useAssets();
+  const { assets, getAssetTransfers, updateTransfer, deleteTransfer } = useAssets();
   const { branches } = useBranches();
+
+  // 편집 중인 이력 상태
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editManager, setEditManager] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const asset = assets.find((a) => a.id === id);
   const transfers = getAssetTransfers(id);
 
   const getBranchName = (branchId: string) =>
     branches.find((b) => b.id === branchId)?.name ?? branchId;
+
+  function startEdit(t: { id: string; transferDate: string; manager: string; reason: string }) {
+    setEditingId(t.id);
+    setEditDate(t.transferDate);
+    setEditManager(t.manager);
+    setEditReason(t.reason);
+    setEditError("");
+  }
+
+  async function handleSave(transferId: string) {
+    if (!editManager.trim()) { setEditError("담당자를 입력해 주세요."); return; }
+    if (!editDate) { setEditError("이동일을 입력해 주세요."); return; }
+    setSaving(true);
+    try {
+      await updateTransfer(transferId, { transferDate: editDate, manager: editManager.trim(), reason: editReason.trim() });
+      setEditingId(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "수정 실패");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(transferId: string) {
+    if (!confirm("이 이동 이력을 삭제하시겠습니까?")) return;
+    try {
+      await deleteTransfer(transferId);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "삭제 실패");
+    }
+  }
 
   if (!asset) {
     return (
@@ -102,16 +142,88 @@ export default function AssetDetailPage() {
               {transfers.map((t) => (
                 <li key={t.id} className="relative">
                   <span className="absolute -left-[22px] top-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white" />
-                  <p className="text-xs text-gray-400 mb-0.5">{t.transferDate}</p>
-                  <p className="text-sm font-medium text-gray-800">
-                    <span className="text-gray-600">{getBranchName(t.fromBranchId)}</span>
-                    <span className="mx-2 text-blue-400">→</span>
-                    <span className="text-blue-700">{getBranchName(t.toBranchId)}</span>
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    담당: {t.manager}
-                    {t.reason && ` · ${t.reason}`}
-                  </p>
+
+                  {editingId === t.id ? (
+                    /* 인라인 편집 폼 */
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2">
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 mb-0.5 block">이동일</label>
+                          <input
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 mb-0.5 block">담당자</label>
+                          <input
+                            type="text"
+                            value={editManager}
+                            onChange={(e) => setEditManager(e.target.value)}
+                            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 mb-0.5 block">이동 사유</label>
+                        <input
+                          type="text"
+                          value={editReason}
+                          onChange={(e) => setEditReason(e.target.value)}
+                          placeholder="이동 사유 (선택)"
+                          className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        />
+                      </div>
+                      {editError && <p className="text-xs text-red-500">{editError}</p>}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => handleSave(t.id)}
+                          disabled={saving}
+                          className="flex-1 bg-blue-600 text-white rounded px-3 py-1.5 text-xs font-semibold hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {saving ? "저장 중..." : "저장"}
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="flex-1 bg-gray-100 text-gray-600 rounded px-3 py-1.5 text-xs font-semibold hover:bg-gray-200"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 일반 표시 */
+                    <div className="group flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">{t.transferDate}</p>
+                        <p className="text-sm font-medium text-gray-800">
+                          <span className="text-gray-600">{getBranchName(t.fromBranchId)}</span>
+                          <span className="mx-2 text-blue-400">→</span>
+                          <span className="text-blue-700">{getBranchName(t.toBranchId)}</span>
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          담당: {t.manager}
+                          {t.reason && ` · ${t.reason}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          onClick={() => startEdit(t)}
+                          className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50"
+                        >
+                          수정
+                        </button>
+                        <button
+                          onClick={() => handleDelete(t.id)}
+                          className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ol>

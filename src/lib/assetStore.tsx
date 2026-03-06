@@ -12,6 +12,8 @@ interface AssetContextType {
   updateAsset: (id: string, data: Partial<Omit<Asset, "id">>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   addTransfer: (transfer: Omit<AssetTransfer, "id">) => Promise<void>;
+  updateTransfer: (id: string, data: Pick<AssetTransfer, "transferDate" | "manager" | "reason">) => Promise<void>;
+  deleteTransfer: (id: string) => Promise<void>;
   getAssetTransfers: (assetId: string) => AssetTransfer[];
 }
 
@@ -135,12 +137,28 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     await Promise.all([loadAssets(), loadTransfers()]);
   }
 
+  async function updateTransfer(id: string, data: Pick<AssetTransfer, "transferDate" | "manager" | "reason">) {
+    const { error } = await supabase.from("asset_transfers").update({
+      transfer_date: data.transferDate,
+      manager: data.manager,
+      reason: data.reason,
+    }).eq("id", id);
+    if (error) throw new Error(`이동 이력 수정 실패: ${error.message}`);
+    await loadTransfers();
+  }
+
+  async function deleteTransfer(id: string) {
+    const { error } = await supabase.from("asset_transfers").delete().eq("id", id);
+    if (error) throw new Error(`이동 이력 삭제 실패: ${error.message}`);
+    await loadTransfers();
+  }
+
   function getAssetTransfers(assetId: string) {
     return transfers.filter((t) => t.assetId === assetId);
   }
 
   return (
-    <AssetContext.Provider value={{ assets, transfers, loading, addAsset, updateAsset, deleteAsset, addTransfer, getAssetTransfers }}>
+    <AssetContext.Provider value={{ assets, transfers, loading, addAsset, updateAsset, deleteAsset, addTransfer, updateTransfer, deleteTransfer, getAssetTransfers }}>
       {children}
     </AssetContext.Provider>
   );
