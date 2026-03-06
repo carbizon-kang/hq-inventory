@@ -5,6 +5,7 @@ import { InventoryProvider } from "@/lib/inventoryStore";
 import { TransactionProvider } from "@/lib/transactionStore";
 import { CategoryProvider } from "@/lib/categoryStore";
 import { AssetProvider } from "@/lib/assetStore";
+import { ItemProvider } from "@/lib/itemStore";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +14,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <InventoryProvider>
           <TransactionProvider>
             <AssetProvider>
-              {children}
+              <ItemProvider>
+                {children}
+              </ItemProvider>
             </AssetProvider>
           </TransactionProvider>
         </InventoryProvider>
