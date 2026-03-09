@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "@/components/layout/Header";
 import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
+import { useAuth } from "@/lib/authStore";
 
 export default function SettingsPage() {
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -16,6 +17,32 @@ export default function SettingsPage() {
   const [newItemPrefix, setNewItemPrefix] = useState("");
   const [itemError, setItemError] = useState("");
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
+
+  const { changePassword } = useAuth();
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+
+  async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+    if (!oldPw) { setPwError("현재 비밀번호를 입력해 주세요."); return; }
+    if (!newPw) { setPwError("새 비밀번호를 입력해 주세요."); return; }
+    if (newPw.length < 6) { setPwError("새 비밀번호는 6자 이상이어야 합니다."); return; }
+    if (newPw !== newPw2) { setPwError("새 비밀번호가 일치하지 않습니다."); return; }
+    try {
+      await changePassword(oldPw, newPw);
+      setOldPw("");
+      setNewPw("");
+      setNewPw2("");
+      setPwSuccess("비밀번호가 성공적으로 변경되었습니다.");
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "변경 실패");
+    }
+  }
 
   async function handleAddItem(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -188,6 +215,50 @@ export default function SettingsPage() {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* 비밀번호 변경 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-1">비밀번호 변경</h2>
+          <p className="text-xs text-gray-400 mb-4">로그인 비밀번호를 변경합니다. 새 비밀번호는 6자 이상이어야 합니다.</p>
+
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            <input
+              type="password"
+              value={oldPw}
+              onChange={(e) => { setOldPw(e.target.value); setPwError(""); setPwSuccess(""); }}
+              placeholder="현재 비밀번호"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                pwError ? "border-red-400" : "border-gray-200"
+              }`}
+            />
+            <input
+              type="password"
+              value={newPw}
+              onChange={(e) => { setNewPw(e.target.value); setPwError(""); setPwSuccess(""); }}
+              placeholder="새 비밀번호 (6자 이상)"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                pwError ? "border-red-400" : "border-gray-200"
+              }`}
+            />
+            <input
+              type="password"
+              value={newPw2}
+              onChange={(e) => { setNewPw2(e.target.value); setPwError(""); setPwSuccess(""); }}
+              placeholder="새 비밀번호 확인"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                pwError ? "border-red-400" : "border-gray-200"
+              }`}
+            />
+            {pwError && <p className="text-xs text-red-500">{pwError}</p>}
+            {pwSuccess && <p className="text-xs text-green-600">{pwSuccess}</p>}
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              비밀번호 변경
+            </button>
+          </form>
         </div>
       </main>
     </div>
