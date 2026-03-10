@@ -7,6 +7,7 @@ import { CategoryProvider } from "@/lib/categoryStore";
 import { AssetProvider } from "@/lib/assetStore";
 import { ItemProvider } from "@/lib/itemStore";
 import { AuthProvider } from "@/lib/authStore";
+import { RentalProvider } from "@/lib/rentalStore";
 import AuthGuard from "@/components/AuthGuard";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -18,9 +19,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             <TransactionProvider>
               <AssetProvider>
                 <ItemProvider>
-                  <AuthGuard>
-                    {children}
-                  </AuthGuard>
+                  <RentalProvider>
+                    <AuthGuard>
+                      {children}
+                    </AuthGuard>
+                  </RentalProvider>
                 </ItemProvider>
               </AssetProvider>
             </TransactionProvider>

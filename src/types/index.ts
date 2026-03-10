@@ -79,3 +79,29 @@ export interface AssetTransfer {
   manager: string;
   reason: string;
 }
+
+// 렌트 장비 유형
+export type RentalEquipType = "복합기" | "정수기" | "기타";
+
+// 정수기 세부 유형
+export type WaterPurifierType = "냉온정수기" | "얼음정수기";
+
+// 렌트 상태
+export type RentalStatus = "렌트중" | "만료" | "해지";
+
+// 렌트 현황 타입
+export interface RentalItem {
+  id: string;
+  branchId: string;              // 지사
+  equipType: RentalEquipType;    // 장비 유형
+  modelName: string;             // 모델명
+  vendor: string;                // 렌탈 업체
+  monthlyFee: number;            // 월 렌트비 (원)
+  startDate: string;             // 렌트 시작일
+  endDate: string;               // 렌트 종료일
+  deposit: boolean;              // 보증금 유무
+  depositAmount: number;         // 보증금 금액 (0 = 없음)
+  waterPurifierType: WaterPurifierType | "";  // 정수기 유형 (정수기만)
+  status: RentalStatus;
+  note: string;
+}
