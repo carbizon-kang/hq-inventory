@@ -40,7 +40,7 @@ export default function BranchesPage() {
           <StatCard title="수리/폐기" value={inRepair} sub="점검 필요" color="red" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-3">
           {branches.map((branch) => (
             <BranchCard key={branch.id} branch={branch} />
           ))}

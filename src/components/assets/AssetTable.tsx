@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Asset, Branch } from "@/types";
 import { useAssets } from "@/lib/assetStore";
 import { useCategories } from "@/lib/categoryStore";
+import SearchSelect from "@/components/ui/SearchSelect";
 
 const STATUS_COLORS: Record<string, string> = {
   "사용중": "bg-green-100 text-green-700",
@@ -69,36 +70,27 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
         />
         {/* 드롭다운 필터 */}
         <div className="flex flex-wrap gap-2">
-          <select
+          <SearchSelect
+            options={uniqueNames.map((n) => ({ value: n, label: n }))}
             value={filterName}
-            onChange={(e) => setFilterName(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="">전체 품목</option>
-            {uniqueNames.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-          <select
+            onChange={setFilterName}
+            placeholder="품명 검색..."
+            allLabel="전체 품목"
+          />
+          <SearchSelect
+            options={categories.map((c) => ({ value: c.name, label: c.name }))}
             value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="">전체 카테고리</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-          <select
+            onChange={setFilterCategory}
+            placeholder="카테고리 검색..."
+            allLabel="전체 카테고리"
+          />
+          <SearchSelect
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
             value={filterBranch}
-            onChange={(e) => setFilterBranch(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="">전체 지사</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+            onChange={setFilterBranch}
+            placeholder="지사 검색..."
+            allLabel="전체 지사"
+          />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}

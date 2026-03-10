@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { RentalItem, Branch } from "@/types";
 import { useRentals } from "@/lib/rentalStore";
+import SearchSelect from "@/components/ui/SearchSelect";
 
 const STATUS_COLORS: Record<string, string> = {
   "렌트중": "bg-green-100 text-green-700",
@@ -55,16 +56,13 @@ export default function RentalTable({ rentals, branches }: RentalTableProps) {
       {/* 필터 */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex flex-wrap gap-2 items-center">
-          <select
+          <SearchSelect
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
             value={filterBranch}
-            onChange={(e) => setFilterBranch(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="">전체 지사</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+            onChange={setFilterBranch}
+            placeholder="지사 검색..."
+            allLabel="전체 지사"
+          />
           <select
             value={filterEquip}
             onChange={(e) => setFilterEquip(e.target.value)}
