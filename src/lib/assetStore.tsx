@@ -87,7 +87,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   }
 
   async function addAsset(asset: Omit<Asset, "id">) {
-    await supabase.from("assets").insert({
+    const { error } = await supabase.from("assets").insert({
       id: `a${Date.now()}`,
       asset_number: asset.assetNumber,
       name: asset.name,
@@ -99,6 +99,9 @@ export function AssetProvider({ children }: { children: ReactNode }) {
       depreciation_years: asset.depreciationYears,
       note: asset.note,
     });
+    if (error) throw new Error(`자산 등록 실패: ${error.message}`);
+    // Realtime 대기 없이 즉시 최신 데이터 반영
+    await loadAssets();
   }
 
   async function updateAsset(id: string, data: Partial<Omit<Asset, "id">>) {
@@ -112,11 +115,15 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     if (data.purchasePrice !== undefined) row.purchase_price = data.purchasePrice;
     if (data.depreciationYears !== undefined) row.depreciation_years = data.depreciationYears;
     if (data.note !== undefined) row.note = data.note;
-    await supabase.from("assets").update(row).eq("id", id);
+    const { error } = await supabase.from("assets").update(row).eq("id", id);
+    if (error) throw new Error(`자산 수정 실패: ${error.message}`);
+    await loadAssets();
   }
 
   async function deleteAsset(id: string) {
-    await supabase.from("assets").delete().eq("id", id);
+    const { error } = await supabase.from("assets").delete().eq("id", id);
+    if (error) throw new Error(`자산 삭제 실패: ${error.message}`);
+    await loadAssets();
   }
 
   async function addTransfer(transfer: Omit<AssetTransfer, "id">) {
