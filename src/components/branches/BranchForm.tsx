@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Branch } from "@/types";
 import { useBranches } from "@/lib/branchStore";
@@ -19,6 +20,9 @@ export default function BranchForm({ branch }: BranchFormProps) {
   const [manager, setManager] = useState(branch?.manager ?? "");
   const [contact, setContact] = useState(branch?.contact ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -30,9 +34,12 @@ export default function BranchForm({ branch }: BranchFormProps) {
     return Object.keys(newErrors).length === 0;
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validate()) return;
+    setSubmitting(true);
+    setSubmitError("");
+    setSuccess(false);
 
     const payload = {
       name: name.trim(),
@@ -41,16 +48,51 @@ export default function BranchForm({ branch }: BranchFormProps) {
       contact: contact.trim(),
     };
 
-    if (isEdit) {
-      await updateBranch(branch.id, payload);
-    } else {
-      await addBranch(payload);
+    try {
+      if (isEdit) {
+        await updateBranch(branch.id, payload);
+        setSuccess(true);
+        // 수정 완료 후 1.2초 뒤 목록으로 이동
+        setTimeout(() => router.push("/branches"), 1200);
+      } else {
+        await addBranch(payload);
+        // 등록 완료 후 폼 초기화 (페이지 이동 없이 연속 등록 가능)
+        setName("");
+        setLocation("");
+        setManager("");
+        setContact("");
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "처리 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
     }
-    router.push("/branches");
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* 성공 메시지 */}
+      {success && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm font-medium">
+          <span>✓</span>
+          <span>
+            {isEdit
+              ? "수정이 완료되었습니다. 목록으로 이동합니다."
+              : "지사가 등록되었습니다. 계속 등록할 수 있습니다."}
+          </span>
+        </div>
+      )}
+
+      {/* 에러 메시지 */}
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-3 text-sm">
+          {submitError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -59,7 +101,7 @@ export default function BranchForm({ branch }: BranchFormProps) {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
             placeholder="예: 대전지사"
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${errors.name ? "border-red-400" : "border-gray-200"}`}
           />
@@ -72,7 +114,7 @@ export default function BranchForm({ branch }: BranchFormProps) {
           <input
             type="text"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => { setLocation(e.target.value); setErrors((p) => ({ ...p, location: "" })); }}
             placeholder="예: 대전"
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${errors.location ? "border-red-400" : "border-gray-200"}`}
           />
@@ -85,7 +127,7 @@ export default function BranchForm({ branch }: BranchFormProps) {
           <input
             type="text"
             value={manager}
-            onChange={(e) => setManager(e.target.value)}
+            onChange={(e) => { setManager(e.target.value); setErrors((p) => ({ ...p, manager: "" })); }}
             placeholder="예: 홍길동"
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${errors.manager ? "border-red-400" : "border-gray-200"}`}
           />
@@ -98,7 +140,7 @@ export default function BranchForm({ branch }: BranchFormProps) {
           <input
             type="text"
             value={contact}
-            onChange={(e) => setContact(e.target.value)}
+            onChange={(e) => { setContact(e.target.value); setErrors((p) => ({ ...p, contact: "" })); }}
             placeholder="예: 042-000-0000"
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${errors.contact ? "border-red-400" : "border-gray-200"}`}
           />
@@ -109,17 +151,17 @@ export default function BranchForm({ branch }: BranchFormProps) {
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 transition-colors"
+          disabled={submitting}
+          className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
         >
-          {isEdit ? "수정 완료" : "지사 추가"}
+          {submitting ? "처리 중..." : isEdit ? "수정 완료" : "지사 추가"}
         </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex-1 bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors"
+        <Link
+          href="/branches"
+          className="flex-1 text-center bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors"
         >
-          취소
-        </button>
+          {isEdit ? "취소" : "목록으로"}
+        </Link>
       </div>
     </form>
   );

@@ -37,15 +37,22 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   }
 
   async function addBranch(b: Omit<Branch, "id">) {
-    await supabase.from("branches").insert({ ...b, id: `b${Date.now()}` });
+    const id = `b${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+    const { error } = await supabase.from("branches").insert({ ...b, id });
+    if (error) throw new Error(`지사 추가 실패: ${error.message}`);
+    await loadBranches(); // 즉시 목록 갱신
   }
 
   async function updateBranch(id: string, data: Partial<Omit<Branch, "id">>) {
-    await supabase.from("branches").update(data).eq("id", id);
+    const { error } = await supabase.from("branches").update(data).eq("id", id);
+    if (error) throw new Error(`지사 수정 실패: ${error.message}`);
+    await loadBranches();
   }
 
   async function deleteBranch(id: string) {
-    await supabase.from("branches").delete().eq("id", id);
+    const { error } = await supabase.from("branches").delete().eq("id", id);
+    if (error) throw new Error(`지사 삭제 실패: ${error.message}`);
+    await loadBranches();
   }
 
   return (
