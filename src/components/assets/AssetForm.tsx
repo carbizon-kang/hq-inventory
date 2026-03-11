@@ -93,6 +93,7 @@ export default function AssetForm({ asset }: AssetFormProps) {
   const [depreciationYears, setDepreciationYears] = useState(asset?.depreciationYears ? String(asset.depreciationYears) : "");
   const [note, setNote] = useState(asset?.note ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState(false);
 
   // 접두어 변경 시 자산번호 자동 생성
   useEffect(() => {
@@ -146,7 +147,8 @@ export default function AssetForm({ asset }: AssetFormProps) {
     } else {
       await addAsset(payload);
     }
-    router.push("/assets");
+    setSuccess(true);
+    setTimeout(() => router.push("/assets"), 1000);
   }
 
   return (
@@ -335,6 +337,14 @@ export default function AssetForm({ asset }: AssetFormProps) {
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
       </div>
+
+      {/* 등록 완료 메시지 */}
+      {success && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm font-medium">
+          <span>✓</span>
+          <span>{isEdit ? "수정이 완료되었습니다." : "자산 등록이 완료되었습니다."}</span>
+        </div>
+      )}
 
       {/* 버튼 */}
       <div className="flex gap-3 pt-2">
