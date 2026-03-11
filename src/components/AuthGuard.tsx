@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/authStore";
 import { APP_NAME } from "@/lib/constants";
 
@@ -9,6 +9,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // 로그아웃 시 비밀번호 입력값 초기화
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setPassword("");
+      setError("");
+    }
+  }, [isLoggedIn]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
