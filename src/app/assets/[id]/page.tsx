@@ -6,6 +6,7 @@ import { useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAssets } from "@/lib/assetStore";
 import { useBranches } from "@/lib/branchStore";
+import QRModal from "@/components/assets/QRModal";
 
 const STATUS_COLORS: Record<string, string> = {
   "사용중": "bg-green-100 text-green-700",
@@ -20,6 +21,7 @@ export default function AssetDetailPage() {
   const { branches } = useBranches();
 
   // 편집 중인 이력 상태
+  const [showQR, setShowQR] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState("");
   const [editManager, setEditManager] = useState("");
@@ -141,6 +143,12 @@ export default function AssetDetailPage() {
             >
               지사 이동
             </Link>
+            <button
+              onClick={() => setShowQR(true)}
+              className="flex-1 bg-white border border-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
+              QR 코드
+            </button>
           </div>
         </div>
 
@@ -196,6 +204,17 @@ export default function AssetDetailPage() {
             </div>
           );
         })()}
+
+        {/* QR 코드 모달 */}
+        {showQR && (
+          <QRModal
+            assetId={asset.id}
+            assetNumber={asset.assetNumber}
+            assetName={asset.name}
+            branchName={getBranchName(asset.branchId)}
+            onClose={() => setShowQR(false)}
+          />
+        )}
 
         {/* 이동 이력 */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">

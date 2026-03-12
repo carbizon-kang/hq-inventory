@@ -6,6 +6,7 @@ import { Asset, Branch } from "@/types";
 import { useAssets } from "@/lib/assetStore";
 import { useCategories } from "@/lib/categoryStore";
 import SearchSelect from "@/components/ui/SearchSelect";
+import QRModal from "@/components/assets/QRModal";
 
 const STATUS_COLORS: Record<string, string> = {
   "사용중": "bg-green-100 text-green-700",
@@ -28,6 +29,7 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
   const [filterBranch, setFilterBranch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [qrAsset, setQrAsset] = useState<Asset | null>(null);
 
   const getBranchName = (id: string) => branches.find((b) => b.id === id)?.name ?? id;
 
@@ -57,6 +59,7 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
   }
 
   return (
+    <>
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
       {/* 필터 영역 */}
       <div className="p-4 border-b border-gray-100 space-y-3">
@@ -169,6 +172,10 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-3">
+                        <button
+                          onClick={() => setQrAsset(asset)}
+                          className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
+                        >QR</button>
                         <Link href={`/assets/${asset.id}/edit`} className="text-xs text-blue-600 hover:underline">수정</Link>
                         <button
                           onClick={() => setConfirmDeleteId(asset.id)}
@@ -184,5 +191,17 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
         </table>
       </div>
     </div>
+
+    {/* QR 코드 모달 */}
+    {qrAsset && (
+      <QRModal
+        assetId={qrAsset.id}
+        assetNumber={qrAsset.assetNumber}
+        assetName={qrAsset.name}
+        branchName={getBranchName(qrAsset.branchId)}
+        onClose={() => setQrAsset(null)}
+      />
+    )}
+    </>
   );
 }
