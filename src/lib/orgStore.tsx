@@ -16,6 +16,7 @@ interface OrgContextType {
   headquarters: OrgUnit[];   // type === "본부"
   teams: OrgUnit[];          // type === "팀"
   addOrgUnit: (type: OrgUnit["type"], name: string, parentName: string) => Promise<void>;
+  updateOrgUnit: (id: string, name: string) => Promise<void>;
   deleteOrgUnit: (id: string) => Promise<void>;
   // 연계 필터 헬퍼
   getHQsByDivision: (divisionName: string) => OrgUnit[];
@@ -57,6 +58,12 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     await loadOrgUnits();
   }
 
+  async function updateOrgUnit(id: string, name: string) {
+    const { error } = await supabase.from("org_units").update({ name }).eq("id", id);
+    if (error) throw new Error(`수정 실패: ${error.message}`);
+    await loadOrgUnits();
+  }
+
   async function deleteOrgUnit(id: string) {
     const { error } = await supabase.from("org_units").delete().eq("id", id);
     if (error) throw new Error(`삭제 실패: ${error.message}`);
@@ -76,7 +83,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <OrgContext.Provider value={{ orgUnits, divisions, headquarters, teams, addOrgUnit, deleteOrgUnit, getHQsByDivision, getTeamsByHQ }}>
+    <OrgContext.Provider value={{ orgUnits, divisions, headquarters, teams, addOrgUnit, updateOrgUnit, deleteOrgUnit, getHQsByDivision, getTeamsByHQ }}>
       {children}
     </OrgContext.Provider>
   );

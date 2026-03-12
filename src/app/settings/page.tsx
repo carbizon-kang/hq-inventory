@@ -27,20 +27,33 @@ export default function SettingsPage() {
   const [pwSuccess, setPwSuccess] = useState("");
 
   // 조직 관리
-  const { divisions, headquarters, teams, addOrgUnit, deleteOrgUnit, getHQsByDivision, getTeamsByHQ } = useOrg();
+  const { divisions, headquarters, teams, addOrgUnit, updateOrgUnit, deleteOrgUnit, getHQsByDivision, getTeamsByHQ } = useOrg();
   const [newDivName, setNewDivName] = useState("");
   const [divError, setDivError] = useState("");
   const [confirmDeleteDivId, setConfirmDeleteDivId] = useState<string | null>(null);
+  const [editDivId, setEditDivId] = useState<string | null>(null);
+  const [editDivName, setEditDivName] = useState("");
 
   const [newHQName, setNewHQName] = useState("");
   const [newHQParent, setNewHQParent] = useState("");
   const [hqError, setHQError] = useState("");
   const [confirmDeleteHQId, setConfirmDeleteHQId] = useState<string | null>(null);
+  const [editHQId, setEditHQId] = useState<string | null>(null);
+  const [editHQName, setEditHQName] = useState("");
 
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamParent, setNewTeamParent] = useState("");
   const [teamError, setTeamError] = useState("");
   const [confirmDeleteTeamId, setConfirmDeleteTeamId] = useState<string | null>(null);
+  const [editTeamId, setEditTeamId] = useState<string | null>(null);
+  const [editTeamName, setEditTeamName] = useState("");
+
+  async function handleUpdateOrg(id: string, name: string, clearEdit: () => void) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    await updateOrgUnit(id, trimmed);
+    clearEdit();
+  }
 
   async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -181,8 +194,24 @@ export default function SettingsPage() {
             <ul className="space-y-1.5">
               {divisions.map((d) => (
                 <li key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
-                  <span className="text-sm font-medium text-gray-800">{d.name}</span>
-                  {confirmDeleteDivId === d.id ? (
+                  {editDivId === d.id ? (
+                    <input
+                      autoFocus
+                      value={editDivName}
+                      onChange={(e) => setEditDivName(e.target.value)}
+                      className="flex-1 border border-blue-300 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 mr-2"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-800">{d.name}</span>
+                  )}
+                  {editDivId === d.id ? (
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => handleUpdateOrg(d.id, editDivName, () => setEditDivId(null))}
+                        className="text-xs text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded transition-colors">저장</button>
+                      <button onClick={() => setEditDivId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : confirmDeleteDivId === d.id ? (
                     <span className="flex items-center gap-2">
                       <button onClick={() => { deleteOrgUnit(d.id); setConfirmDeleteDivId(null); }}
                         className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
@@ -190,8 +219,12 @@ export default function SettingsPage() {
                         className="text-xs text-gray-500 hover:text-gray-700">취소</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmDeleteDivId(d.id)}
-                      className="text-xs text-red-400 hover:underline">삭제</button>
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => { setEditDivId(d.id); setEditDivName(d.name); }}
+                        className="text-xs text-blue-500 hover:underline">수정</button>
+                      <button onClick={() => setConfirmDeleteDivId(d.id)}
+                        className="text-xs text-red-400 hover:underline">삭제</button>
+                    </span>
                   )}
                 </li>
               ))}
@@ -228,20 +261,40 @@ export default function SettingsPage() {
             <ul className="space-y-1.5">
               {headquarters.map((h) => (
                 <li key={h.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                  <div>
-                    <span className="text-xs text-blue-500 mr-2">{h.parentName}</span>
-                    <span className="text-sm font-medium text-gray-800">{h.name}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs text-blue-500 shrink-0">{h.parentName}</span>
+                    {editHQId === h.id ? (
+                      <input
+                        autoFocus
+                        value={editHQName}
+                        onChange={(e) => setEditHQName(e.target.value)}
+                        className="flex-1 border border-blue-300 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-800">{h.name}</span>
+                    )}
                   </div>
-                  {confirmDeleteHQId === h.id ? (
-                    <span className="flex items-center gap-2">
+                  {editHQId === h.id ? (
+                    <span className="flex items-center gap-2 ml-2">
+                      <button onClick={() => handleUpdateOrg(h.id, editHQName, () => setEditHQId(null))}
+                        className="text-xs text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded transition-colors">저장</button>
+                      <button onClick={() => setEditHQId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : confirmDeleteHQId === h.id ? (
+                    <span className="flex items-center gap-2 ml-2">
                       <button onClick={() => { deleteOrgUnit(h.id); setConfirmDeleteHQId(null); }}
                         className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
                       <button onClick={() => setConfirmDeleteHQId(null)}
                         className="text-xs text-gray-500 hover:text-gray-700">취소</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmDeleteHQId(h.id)}
-                      className="text-xs text-red-400 hover:underline">삭제</button>
+                    <span className="flex items-center gap-2 ml-2">
+                      <button onClick={() => { setEditHQId(h.id); setEditHQName(h.name); }}
+                        className="text-xs text-blue-500 hover:underline">수정</button>
+                      <button onClick={() => setConfirmDeleteHQId(h.id)}
+                        className="text-xs text-red-400 hover:underline">삭제</button>
+                    </span>
                   )}
                 </li>
               ))}
@@ -278,20 +331,40 @@ export default function SettingsPage() {
             <ul className="space-y-1.5">
               {teams.map((t) => (
                 <li key={t.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                  <div>
-                    <span className="text-xs text-blue-500 mr-2">{t.parentName}</span>
-                    <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs text-blue-500 shrink-0">{t.parentName}</span>
+                    {editTeamId === t.id ? (
+                      <input
+                        autoFocus
+                        value={editTeamName}
+                        onChange={(e) => setEditTeamName(e.target.value)}
+                        className="flex-1 border border-blue-300 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                    )}
                   </div>
-                  {confirmDeleteTeamId === t.id ? (
-                    <span className="flex items-center gap-2">
+                  {editTeamId === t.id ? (
+                    <span className="flex items-center gap-2 ml-2">
+                      <button onClick={() => handleUpdateOrg(t.id, editTeamName, () => setEditTeamId(null))}
+                        className="text-xs text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded transition-colors">저장</button>
+                      <button onClick={() => setEditTeamId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : confirmDeleteTeamId === t.id ? (
+                    <span className="flex items-center gap-2 ml-2">
                       <button onClick={() => { deleteOrgUnit(t.id); setConfirmDeleteTeamId(null); }}
                         className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
                       <button onClick={() => setConfirmDeleteTeamId(null)}
                         className="text-xs text-gray-500 hover:text-gray-700">취소</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmDeleteTeamId(t.id)}
-                      className="text-xs text-red-400 hover:underline">삭제</button>
+                    <span className="flex items-center gap-2 ml-2">
+                      <button onClick={() => { setEditTeamId(t.id); setEditTeamName(t.name); }}
+                        className="text-xs text-blue-500 hover:underline">수정</button>
+                      <button onClick={() => setConfirmDeleteTeamId(t.id)}
+                        className="text-xs text-red-400 hover:underline">삭제</button>
+                    </span>
                   )}
                 </li>
               ))}
