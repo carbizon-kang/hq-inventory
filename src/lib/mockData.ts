@@ -2,11 +2,11 @@ import { Branch, InventoryItem, Asset, AssetTransfer, Category } from "@/types";
 
 // 지사 목록 샘플 데이터
 export const MOCK_BRANCHES: Branch[] = [
-  { id: "hq", name: "본사", location: "서울", manager: "김본사", contact: "02-1234-5678" },
-  { id: "b1", name: "부산지사", location: "부산", manager: "이부산", contact: "051-111-2222" },
-  { id: "b2", name: "대구지사", location: "대구", manager: "박대구", contact: "053-333-4444" },
-  { id: "b3", name: "인천지사", location: "인천", manager: "최인천", contact: "032-555-6666" },
-  { id: "b4", name: "광주지사", location: "광주", manager: "정광주", contact: "062-777-8888" },
+  { id: "hq", name: "본사", location: "서울", manager: "김본사", contact: "02-1234-5678", division: "", headquarters: "", team: "" },
+  { id: "b1", name: "부산지사", location: "부산", manager: "이부산", contact: "051-111-2222", division: "", headquarters: "", team: "" },
+  { id: "b2", name: "대구지사", location: "대구", manager: "박대구", contact: "053-333-4444", division: "", headquarters: "", team: "" },
+  { id: "b3", name: "인천지사", location: "인천", manager: "최인천", contact: "032-555-6666", division: "", headquarters: "", team: "" },
+  { id: "b4", name: "광주지사", location: "광주", manager: "정광주", contact: "062-777-8888", division: "", headquarters: "", team: "" },
 ];
 
 // 재고 항목 샘플 데이터
