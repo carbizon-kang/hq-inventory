@@ -12,11 +12,27 @@ export default function BranchesPage() {
   const { branches } = useBranches();
   const { assets } = useAssets();
   const [search, setSearch] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
 
   const totalBranches = branches.length;
   const totalAssets = assets.length;
   const inUse = assets.filter((a) => a.status === "사용중").length;
   const inRepair = assets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
+
+  // 지역 목록 (중복 제거, 정렬)
+  const uniqueLocations = Array.from(new Set(branches.map((b) => b.location).filter(Boolean))).sort();
+
+  const filtered = branches.filter((b) => {
+    const matchSearch =
+      !search ||
+      b.name.includes(search) ||
+      b.location.includes(search) ||
+      b.manager.includes(search);
+    const matchLocation = !filterLocation || b.location === filterLocation;
+    return matchSearch && matchLocation;
+  });
+
+  const hasFilter = search || filterLocation;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,10 +59,10 @@ export default function BranchesPage() {
         </div>
 
         {/* 검색창 */}
-        <div className="relative mb-4">
+        <div className="relative mb-2">
           <input
             type="text"
-            placeholder="지사명 또는 지역으로 검색"
+            placeholder="지사명, 지역, 담당자명으로 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm pl-9 focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -62,31 +78,45 @@ export default function BranchesPage() {
           )}
         </div>
 
+        {/* 지역 드롭다운 */}
+        <div className="flex items-center gap-2 mb-4">
+          <select
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+          >
+            <option value="">전체 지역</option>
+            {uniqueLocations.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+          {hasFilter && (
+            <button
+              onClick={() => { setSearch(""); setFilterLocation(""); }}
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+            >
+              필터 초기화
+            </button>
+          )}
+          {hasFilter && (
+            <span className="text-xs text-gray-400 ml-auto">
+              {filtered.length}개 / 전체 {branches.length}개
+            </span>
+          )}
+        </div>
+
         {/* 지사 목록 */}
-        {(() => {
-          const filtered = branches.filter((b) =>
-            !search ||
-            b.name.includes(search) ||
-            b.location.includes(search) ||
-            b.manager.includes(search)
-          );
-          return filtered.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-12">
-              {search ? `"${search}" 검색 결과가 없습니다.` : "등록된 지사가 없습니다."}
-            </p>
-          ) : (
-            <>
-              {search && (
-                <p className="text-xs text-gray-400 mb-2">{filtered.length}개 / 전체 {branches.length}개</p>
-              )}
-              <div className="flex flex-col gap-3">
-                {filtered.map((branch) => (
-                  <BranchCard key={branch.id} branch={branch} />
-                ))}
-              </div>
-            </>
-          );
-        })()}
+        {filtered.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-12">
+            {hasFilter ? "검색 결과가 없습니다." : "등록된 지사가 없습니다."}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filtered.map((branch) => (
+              <BranchCard key={branch.id} branch={branch} />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
