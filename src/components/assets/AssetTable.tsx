@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Asset, Branch } from "@/types";
 import { useAssets } from "@/lib/assetStore";
@@ -16,6 +16,27 @@ const STATUS_COLORS: Record<string, string> = {
   "폐기":   "bg-red-100 text-red-700",
 };
 
+const FILTER_KEY = "asset_table_filters";
+
+interface FilterState {
+  search: string;
+  filterDiv: string;
+  filterHQ: string;
+  filterTeam: string;
+  filterName: string;
+  filterCategory: string;
+  filterBranch: string;
+  filterStatus: string;
+}
+
+function loadFilters(): FilterState {
+  try {
+    const saved = sessionStorage.getItem(FILTER_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return { search: "", filterDiv: "", filterHQ: "", filterTeam: "", filterName: "", filterCategory: "", filterBranch: "", filterStatus: "" };
+}
+
 interface AssetTableProps {
   assets: Asset[];
   branches: Branch[];
@@ -27,7 +48,7 @@ export default function AssetTable({ assets, branches, isAdmin = false }: AssetT
   const { categories } = useCategories();
   const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
 
-  const [search, setSearch] = useState("");
+  const [search,         setSearch]         = useState("");
   const [filterDiv,      setFilterDiv]      = useState("");
   const [filterHQ,       setFilterHQ]       = useState("");
   const [filterTeam,     setFilterTeam]     = useState("");
@@ -37,6 +58,27 @@ export default function AssetTable({ assets, branches, isAdmin = false }: AssetT
   const [filterStatus,   setFilterStatus]   = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [qrAsset, setQrAsset] = useState<Asset | null>(null);
+
+  // 마운트 시 저장된 필터 복원
+  useEffect(() => {
+    const saved = loadFilters();
+    setSearch(saved.search);
+    setFilterDiv(saved.filterDiv);
+    setFilterHQ(saved.filterHQ);
+    setFilterTeam(saved.filterTeam);
+    setFilterName(saved.filterName);
+    setFilterCategory(saved.filterCategory);
+    setFilterBranch(saved.filterBranch);
+    setFilterStatus(saved.filterStatus);
+  }, []);
+
+  // 필터 변경 시 sessionStorage에 저장
+  useEffect(() => {
+    sessionStorage.setItem(FILTER_KEY, JSON.stringify({
+      search, filterDiv, filterHQ, filterTeam,
+      filterName, filterCategory, filterBranch, filterStatus,
+    }));
+  }, [search, filterDiv, filterHQ, filterTeam, filterName, filterCategory, filterBranch, filterStatus]);
 
   const getBranch = (id: string) => branches.find((b) => b.id === id);
   const getBranchName = (id: string) => getBranch(id)?.name ?? id;
@@ -93,6 +135,7 @@ export default function AssetTable({ assets, branches, isAdmin = false }: AssetT
   function resetFilters() {
     setSearch(""); setFilterDiv(""); setFilterHQ(""); setFilterTeam("");
     setFilterName(""); setFilterCategory(""); setFilterBranch(""); setFilterStatus("");
+    sessionStorage.removeItem(FILTER_KEY);
   }
 
   return (
