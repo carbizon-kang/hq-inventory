@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Asset, Branch } from "@/types";
 import { useAssets } from "@/lib/assetStore";
 import { useCategories } from "@/lib/categoryStore";
+import { useOrg } from "@/lib/orgStore";
 import SearchSelect from "@/components/ui/SearchSelect";
 import QRModal from "@/components/assets/QRModal";
 
@@ -23,36 +24,74 @@ interface AssetTableProps {
 export default function AssetTable({ assets, branches }: AssetTableProps) {
   const { deleteAsset } = useAssets();
   const { categories } = useCategories();
+  const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
+
   const [search, setSearch] = useState("");
-  const [filterName, setFilterName] = useState("");
+  const [filterDiv,      setFilterDiv]      = useState("");
+  const [filterHQ,       setFilterHQ]       = useState("");
+  const [filterTeam,     setFilterTeam]     = useState("");
+  const [filterName,     setFilterName]     = useState("");
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterBranch, setFilterBranch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterBranch,   setFilterBranch]   = useState("");
+  const [filterStatus,   setFilterStatus]   = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [qrAsset, setQrAsset] = useState<Asset | null>(null);
 
-  const getBranchName = (id: string) => branches.find((b) => b.id === id)?.name ?? id;
+  const getBranch = (id: string) => branches.find((b) => b.id === id);
+  const getBranchName = (id: string) => getBranch(id)?.name ?? id;
+
+  const hqOptions   = filterDiv ? getHQsByDivision(filterDiv) : [];
+  const teamOptions = filterHQ  ? getTeamsByHQ(filterHQ)      : [];
+
+  // 계층 필터에 해당하는 지사 ID 집합
+  const filteredBranchIds = new Set(
+    branches.filter((b) => {
+      if (filterDiv  && b.division     !== filterDiv)  return false;
+      if (filterHQ   && b.headquarters !== filterHQ)   return false;
+      if (filterTeam && b.team         !== filterTeam) return false;
+      return true;
+    }).map((b) => b.id)
+  );
+
+  // 계층 필터 적용된 지사 목록 (지사 드롭다운용)
+  const branchOptions = branches.filter((b) => {
+    if (filterDiv  && b.division     !== filterDiv)  return false;
+    if (filterHQ   && b.headquarters !== filterHQ)   return false;
+    if (filterTeam && b.team         !== filterTeam) return false;
+    return true;
+  });
+
+  function handleFilterDiv(v: string) {
+    setFilterDiv(v); setFilterHQ(""); setFilterTeam(""); setFilterBranch("");
+  }
+  function handleFilterHQ(v: string) {
+    setFilterHQ(v); setFilterTeam(""); setFilterBranch("");
+  }
 
   const uniqueNames = Array.from(new Set(assets.map((a) => a.name))).sort();
 
   const filtered = assets.filter((a) => {
+    const branch = getBranch(a.branchId);
     const matchSearch =
       !search ||
       a.name.includes(search) ||
       a.assetNumber.includes(search) ||
-      getBranchName(a.branchId).includes(search);
+      (branch?.name ?? "").includes(search);
+    const matchDiv      = !filterDiv      || filteredBranchIds.has(a.branchId);
+    const matchHQ       = !filterHQ       || (branch?.headquarters === filterHQ);
+    const matchTeam     = !filterTeam     || (branch?.team === filterTeam);
     const matchName     = !filterName     || a.name === filterName;
     const matchCategory = !filterCategory || a.category === filterCategory;
     const matchBranch   = !filterBranch   || a.branchId === filterBranch;
     const matchStatus   = !filterStatus   || a.status === filterStatus;
-    return matchSearch && matchName && matchCategory && matchBranch && matchStatus;
+    return matchSearch && matchDiv && matchHQ && matchTeam && matchName && matchCategory && matchBranch && matchStatus;
   });
 
-  const hasFilter = search || filterName || filterCategory || filterBranch || filterStatus;
+  const hasFilter = search || filterDiv || filterHQ || filterTeam || filterName || filterCategory || filterBranch || filterStatus;
 
   function resetFilters() {
-    setSearch(""); setFilterName(""); setFilterCategory("");
-    setFilterBranch(""); setFilterStatus("");
+    setSearch(""); setFilterDiv(""); setFilterHQ(""); setFilterTeam("");
+    setFilterName(""); setFilterCategory(""); setFilterBranch(""); setFilterStatus("");
   }
 
   return (
@@ -68,6 +107,50 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
+          {/* 계층 필터: 부문 → 본부 → 팀 → 지사 */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {divisions.length > 0 && (
+              <>
+                <select
+                  value={filterDiv}
+                  onChange={(e) => handleFilterDiv(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+                >
+                  <option value="">전체 부문</option>
+                  {divisions.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+                </select>
+                <span className="text-gray-300 text-sm">›</span>
+                <select
+                  value={filterHQ}
+                  onChange={(e) => handleFilterHQ(e.target.value)}
+                  disabled={!filterDiv || hqOptions.length === 0}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white disabled:opacity-40"
+                >
+                  <option value="">전체 본부</option>
+                  {hqOptions.map((h) => <option key={h.id} value={h.name}>{h.name}</option>)}
+                </select>
+                <span className="text-gray-300 text-sm">›</span>
+                <select
+                  value={filterTeam}
+                  onChange={(e) => { setFilterTeam(e.target.value); setFilterBranch(""); }}
+                  disabled={!filterHQ || teamOptions.length === 0}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white disabled:opacity-40"
+                >
+                  <option value="">전체 팀</option>
+                  {teamOptions.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                </select>
+                <span className="text-gray-300 text-sm">›</span>
+              </>
+            )}
+            <SearchSelect
+              options={branchOptions.map((b) => ({ value: b.id, label: b.name }))}
+              value={filterBranch}
+              onChange={setFilterBranch}
+              placeholder="지사 검색..."
+              allLabel="전체 지사"
+            />
+          </div>
+          {/* 품목/카테고리/상태 필터 */}
           <div className="flex flex-wrap gap-2 items-center">
             <SearchSelect
               options={uniqueNames.map((n) => ({ value: n, label: n }))}
@@ -82,13 +165,6 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
               onChange={setFilterCategory}
               placeholder="카테고리..."
               allLabel="전체 카테고리"
-            />
-            <SearchSelect
-              options={branches.map((b) => ({ value: b.id, label: b.name }))}
-              value={filterBranch}
-              onChange={setFilterBranch}
-              placeholder="지사 검색..."
-              allLabel="전체 지사"
             />
             <select
               value={filterStatus}
