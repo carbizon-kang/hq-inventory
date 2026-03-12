@@ -12,15 +12,15 @@ export default function BranchesPage() {
   const { branches } = useBranches();
   const { assets } = useAssets();
   const [search, setSearch] = useState("");
-  const [filterLocation, setFilterLocation] = useState("");
+  const [filterBranch, setFilterBranch] = useState("");
 
   const totalBranches = branches.length;
   const totalAssets = assets.length;
   const inUse = assets.filter((a) => a.status === "사용중").length;
   const inRepair = assets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
 
-  // 지역 목록 (중복 제거, 정렬)
-  const uniqueLocations = Array.from(new Set(branches.map((b) => b.location).filter(Boolean))).sort();
+  // 지사명 목록 (정렬)
+  const sortedBranches = [...branches].sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
   const filtered = branches.filter((b) => {
     const matchSearch =
@@ -28,11 +28,11 @@ export default function BranchesPage() {
       b.name.includes(search) ||
       b.location.includes(search) ||
       b.manager.includes(search);
-    const matchLocation = !filterLocation || b.location === filterLocation;
-    return matchSearch && matchLocation;
+    const matchBranch = !filterBranch || b.id === filterBranch;
+    return matchSearch && matchBranch;
   });
 
-  const hasFilter = search || filterLocation;
+  const hasFilter = search || filterBranch;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,21 +78,21 @@ export default function BranchesPage() {
           )}
         </div>
 
-        {/* 지역 드롭다운 */}
+        {/* 지사명 드롭다운 */}
         <div className="flex items-center gap-2 mb-4">
           <select
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
+            value={filterBranch}
+            onChange={(e) => setFilterBranch(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
           >
-            <option value="">전체 지역</option>
-            {uniqueLocations.map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
+            <option value="">전체 지사</option>
+            {sortedBranches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
           {hasFilter && (
             <button
-              onClick={() => { setSearch(""); setFilterLocation(""); }}
+              onClick={() => { setSearch(""); setFilterBranch(""); }}
               className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
             >
               필터 초기화
