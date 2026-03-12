@@ -1,15 +1,25 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import AssetForm from "@/components/assets/AssetForm";
 import { useAssets } from "@/lib/assetStore";
+import { useAuth } from "@/lib/authStore";
 
 export default function EditAssetPage() {
   const { id } = useParams<{ id: string }>();
   const { assets } = useAssets();
+  const { isAdmin, isLoading } = useAuth();
+  const router = useRouter();
   const asset = assets.find((a) => a.id === id);
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) router.replace("/assets");
+  }, [isAdmin, isLoading, router]);
+
+  if (isLoading || !isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">

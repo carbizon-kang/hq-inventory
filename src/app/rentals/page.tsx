@@ -13,9 +13,12 @@ export default function RentalsPage() {
   const { branches } = useBranches();
   const { isAdmin, currentUser } = useAuth();
 
-  // 일반 사용자는 자신의 지사 렌트만 표시
-  const displayRentals = isAdmin ? rentals : rentals.filter((r) => r.branchId === currentUser?.branchId);
-  const displayBranches = isAdmin ? branches : branches.filter((b) => b.id === currentUser?.branchId);
+  // 일반 사용자는 자신의 부문 렌트만 표시
+  const displayBranches = isAdmin
+    ? branches
+    : branches.filter((b) => b.division === currentUser?.division);
+  const displayBranchIds = new Set(displayBranches.map((b) => b.id));
+  const displayRentals = isAdmin ? rentals : rentals.filter((r) => displayBranchIds.has(r.branchId));
 
   const active      = displayRentals.filter((r) => r.status === "렌트중").length;
   const copiers     = displayRentals.filter((r) => r.equipType === "복합기").length;
@@ -34,12 +37,14 @@ export default function RentalsPage() {
             <h1 className="text-2xl font-bold text-gray-900">렌트 현황</h1>
             <p className="text-sm text-gray-500 mt-1">복합기·정수기 등 렌트 장비 현황 및 비용 관리</p>
           </div>
-          <Link
-            href="/rentals/new"
-            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + 렌트 등록
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/rentals/new"
+              className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              + 렌트 등록
+            </Link>
+          )}
         </div>
 
         {/* 요약 카드 */}
@@ -50,7 +55,7 @@ export default function RentalsPage() {
           <StatCard title="정수기" value={purifiers} sub="전체 정수기 건수" color="blue" />
         </div>
 
-        <RentalTable rentals={displayRentals} branches={displayBranches} />
+        <RentalTable rentals={displayRentals} branches={displayBranches} isAdmin={isAdmin} />
       </main>
     </div>
   );

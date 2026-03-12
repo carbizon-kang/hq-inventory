@@ -1,10 +1,22 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import AssetForm from "@/components/assets/AssetForm";
+import { useAuth } from "@/lib/authStore";
 
 export default function NewAssetPage() {
+  const { isAdmin, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) router.replace("/assets");
+  }, [isAdmin, isLoading, router]);
+
+  if (isLoading || !isAdmin) return null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />

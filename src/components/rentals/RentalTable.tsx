@@ -21,13 +21,14 @@ const EQUIP_COLORS: Record<string, string> = {
 interface RentalTableProps {
   rentals: RentalItem[];
   branches: Branch[];
+  isAdmin?: boolean;
 }
 
 function formatFee(n: number) {
   return n > 0 ? `${n.toLocaleString()}원` : "-";
 }
 
-export default function RentalTable({ rentals, branches }: RentalTableProps) {
+export default function RentalTable({ rentals, branches, isAdmin = false }: RentalTableProps) {
   const { deleteRental } = useRentals();
   const [filterBranch, setFilterBranch] = useState("");
   const [filterEquip, setFilterEquip] = useState("");
@@ -160,7 +161,7 @@ export default function RentalTable({ rentals, branches }: RentalTableProps) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {confirmDeleteId === r.id ? (
+                    {isAdmin && confirmDeleteId === r.id ? (
                       <span className="inline-flex items-center gap-2">
                         <button
                           onClick={() => { deleteRental(r.id); setConfirmDeleteId(null); }}
@@ -171,7 +172,7 @@ export default function RentalTable({ rentals, branches }: RentalTableProps) {
                           className="text-xs text-gray-500 hover:text-gray-700"
                         >취소</button>
                       </span>
-                    ) : (
+                    ) : isAdmin ? (
                       <span className="inline-flex items-center gap-3">
                         <Link href={`/rentals/${r.id}/edit`} className="text-xs text-blue-600 hover:underline">수정</Link>
                         <button
@@ -179,7 +180,7 @@ export default function RentalTable({ rentals, branches }: RentalTableProps) {
                           className="text-xs text-red-400 hover:underline"
                         >삭제</button>
                       </span>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))

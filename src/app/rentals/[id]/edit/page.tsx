@@ -1,15 +1,25 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import RentalForm from "@/components/rentals/RentalForm";
 import { useRentals } from "@/lib/rentalStore";
+import { useAuth } from "@/lib/authStore";
 
 export default function EditRentalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { rentals } = useRentals();
+  const { isAdmin, isLoading } = useAuth();
+  const router = useRouter();
   const rental = rentals.find((r) => r.id === id);
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) router.replace("/rentals");
+  }, [isAdmin, isLoading, router]);
+
+  if (isLoading || !isAdmin) return null;
 
   if (!rental) {
     return (

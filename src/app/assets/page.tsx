@@ -13,9 +13,12 @@ export default function AssetsPage() {
   const { branches } = useBranches();
   const { isAdmin, currentUser } = useAuth();
 
-  // 일반 사용자는 자신의 지사 자산만 표시
-  const displayAssets = isAdmin ? assets : assets.filter((a) => a.branchId === currentUser?.branchId);
-  const displayBranches = isAdmin ? branches : branches.filter((b) => b.id === currentUser?.branchId);
+  // 일반 사용자는 자신의 부문 자산만 표시
+  const displayBranches = isAdmin
+    ? branches
+    : branches.filter((b) => b.division === currentUser?.division);
+  const displayBranchIds = new Set(displayBranches.map((b) => b.id));
+  const displayAssets = isAdmin ? assets : assets.filter((a) => displayBranchIds.has(a.branchId));
 
   const total = displayAssets.length;
   const inUse = displayAssets.filter((a) => a.status === "사용중").length;
@@ -31,12 +34,14 @@ export default function AssetsPage() {
             <h1 className="text-2xl font-bold text-gray-900">유형자산 관리</h1>
             <p className="text-sm text-gray-500 mt-1">노트북·모니터·책상 등 개별 자산 등록, 라벨링, 지사 이동 이력 관리</p>
           </div>
-          <Link
-            href="/assets/new"
-            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + 자산 등록
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/assets/new"
+              className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              + 자산 등록
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -46,7 +51,7 @@ export default function AssetsPage() {
           <StatCard title="수리/폐기" value={inRepair} sub="점검 필요" color="red" />
         </div>
 
-        <AssetTable assets={displayAssets} branches={displayBranches} />
+        <AssetTable assets={displayAssets} branches={displayBranches} isAdmin={isAdmin} />
       </main>
     </div>
   );

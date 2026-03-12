@@ -1,10 +1,22 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import RentalForm from "@/components/rentals/RentalForm";
+import { useAuth } from "@/lib/authStore";
 
 export default function NewRentalPage() {
+  const { isAdmin, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) router.replace("/rentals");
+  }, [isAdmin, isLoading, router]);
+
+  if (isLoading || !isAdmin) return null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />

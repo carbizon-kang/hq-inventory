@@ -19,9 +19,10 @@ const STATUS_COLORS: Record<string, string> = {
 interface AssetTableProps {
   assets: Asset[];
   branches: Branch[];
+  isAdmin?: boolean;
 }
 
-export default function AssetTable({ assets, branches }: AssetTableProps) {
+export default function AssetTable({ assets, branches, isAdmin = false }: AssetTableProps) {
   const { deleteAsset } = useAssets();
   const { categories } = useCategories();
   const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
@@ -253,7 +254,7 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
 
                     {/* 관리 */}
                     <td className="px-3 py-2 text-right">
-                      {confirmDeleteId === asset.id ? (
+                      {isAdmin && confirmDeleteId === asset.id ? (
                         <span className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => { deleteAsset(asset.id); setConfirmDeleteId(null); }}
@@ -271,11 +272,15 @@ export default function AssetTable({ assets, branches }: AssetTableProps) {
                             className="text-xs text-gray-400 hover:text-gray-700"
                             title="QR 코드"
                           >QR</button>
-                          <Link href={`/assets/${asset.id}/edit`} className="text-xs text-blue-600 hover:underline">수정</Link>
-                          <button
-                            onClick={() => setConfirmDeleteId(asset.id)}
-                            className="text-xs text-red-400 hover:underline"
-                          >삭제</button>
+                          {isAdmin && (
+                            <>
+                              <Link href={`/assets/${asset.id}/edit`} className="text-xs text-blue-600 hover:underline">수정</Link>
+                              <button
+                                onClick={() => setConfirmDeleteId(asset.id)}
+                                className="text-xs text-red-400 hover:underline"
+                              >삭제</button>
+                            </>
+                          )}
                         </span>
                       )}
                     </td>

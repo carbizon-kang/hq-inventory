@@ -6,7 +6,6 @@ import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
 import { useAuth } from "@/lib/authStore";
 import { useOrg } from "@/lib/orgStore";
-import { useBranches } from "@/lib/branchStore";
 
 export default function SettingsPage() {
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -21,7 +20,6 @@ export default function SettingsPage() {
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
 
   const { changePassword, isAdmin, currentUser, users, updateUser, deleteUser } = useAuth();
-  const { branches } = useBranches();
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -193,16 +191,16 @@ export default function SettingsPage() {
                     <option value="admin">관리자</option>
                     <option value="user">일반 사용자</option>
                   </select>
-                  {/* 지사 배정 */}
+                  {/* 부문 배정 */}
                   <select
-                    value={u.branchId}
-                    onChange={(e) => updateUser(u.id, { branchId: e.target.value })}
+                    value={u.division}
+                    onChange={(e) => updateUser(u.id, { division: e.target.value })}
                     disabled={u.role === "admin"}
                     className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none disabled:opacity-40"
                   >
-                    <option value="">지사 미배정</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
+                    <option value="">부문 미배정</option>
+                    {divisions.map((d) => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
                     ))}
                   </select>
                   {/* 삭제 */}

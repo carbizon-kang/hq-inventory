@@ -14,7 +14,7 @@ export interface AppUser {
   id: string;
   username: string;
   role: "admin" | "user";
-  branchId: string;
+  division: string; // 부문 (관리자는 "" = 전체 접근)
 }
 
 interface AuthContextType {
@@ -27,7 +27,7 @@ interface AuthContextType {
   logout: () => void;
   register: (username: string, password: string) => Promise<void>;
   changePassword: (oldPw: string, newPw: string) => Promise<void>;
-  updateUser: (id: string, data: { role?: "admin" | "user"; branchId?: string }) => Promise<void>;
+  updateUser: (id: string, data: { role?: "admin" | "user"; division?: string }) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
 }
 
@@ -40,7 +40,7 @@ function rowToUser(r: Record<string, unknown>): AppUser {
     id: r.id as string,
     username: r.username as string,
     role: (r.role as "admin" | "user") || "user",
-    branchId: (r.branch_id as string) || "",
+    division: (r.branch_id as string) || "", // DB 컬럼 branch_id를 division으로 매핑
   };
 }
 
@@ -97,12 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: setting } = await supabase
         .from("app_settings").select("value").eq("key", "password_hash").single();
       if (setting && setting.value === hash) {
-        // 자동으로 admin 계정 생성
         const id = `user${Date.now()}`;
         await supabase.from("users").insert({
           id, username: "admin", password_hash: hash, role: "admin", branch_id: "",
         });
-        const user: AppUser = { id, username: "admin", role: "admin", branchId: "" };
+        const user: AppUser = { id, username: "admin", role: "admin", division: "" };
         const expiry = Date.now() + SESSION_HOURS * 60 * 60 * 1000;
         localStorage.setItem(SESSION_KEY, JSON.stringify({ user, expiry }));
         setCurrentUser(user);
@@ -145,10 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(`비밀번호 변경 실패: ${error.message}`);
   }
 
-  async function updateUser(id: string, data: { role?: "admin" | "user"; branchId?: string }) {
+  async function updateUser(id: string, data: { role?: "admin" | "user"; division?: string }) {
     const row: Record<string, unknown> = {};
     if (data.role !== undefined) row.role = data.role;
-    if (data.branchId !== undefined) row.branch_id = data.branchId;
+    if (data.division !== undefined) row.branch_id = data.division; // division → DB branch_id
     const { error } = await supabase.from("users").update(row).eq("id", id);
     if (error) throw new Error(`수정 실패: ${error.message}`);
     await loadUsers();
