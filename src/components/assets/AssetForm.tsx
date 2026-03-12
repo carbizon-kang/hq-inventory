@@ -77,10 +77,24 @@ export default function AssetForm({ asset }: AssetFormProps) {
 
   const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
 
-  // 지사 필터용 상태
+  // 지사 필터용 상태 (수정 모드에서는 기존 지사의 계층으로 초기화)
+  const [filterInitialized, setFilterInitialized] = useState(!isEdit);
   const [filterDiv,  setFilterDiv]  = useState("");
   const [filterHQ,   setFilterHQ]   = useState("");
   const [filterTeam, setFilterTeam] = useState("");
+
+  // 수정 모드: branches 로드 후 기존 지사의 계층 정보로 필터 초기화
+  useEffect(() => {
+    if (!filterInitialized && branches.length > 0 && asset?.branchId) {
+      const branch = branches.find((b) => b.id === asset.branchId);
+      if (branch) {
+        if (branch.division)     setFilterDiv(branch.division);
+        if (branch.headquarters) setFilterHQ(branch.headquarters);
+        if (branch.team)         setFilterTeam(branch.team);
+      }
+      setFilterInitialized(true);
+    }
+  }, [branches, filterInitialized, asset?.branchId]);
 
   // 계층 필터에 따른 지사 목록
   const filteredBranches = branches.filter((b) => {
@@ -95,11 +109,9 @@ export default function AssetForm({ asset }: AssetFormProps) {
 
   function handleFilterDiv(v: string) {
     setFilterDiv(v); setFilterHQ(""); setFilterTeam("");
-    setBranchId("");
   }
   function handleFilterHQ(v: string) {
     setFilterHQ(v); setFilterTeam("");
-    setBranchId("");
   }
 
   const [name, setName] = useState(asset?.name ?? "");
