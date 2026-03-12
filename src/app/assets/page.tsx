@@ -6,15 +6,21 @@ import StatCard from "@/components/ui/StatCard";
 import AssetTable from "@/components/assets/AssetTable";
 import { useAssets } from "@/lib/assetStore";
 import { useBranches } from "@/lib/branchStore";
+import { useAuth } from "@/lib/authStore";
 
 export default function AssetsPage() {
   const { assets } = useAssets();
   const { branches } = useBranches();
+  const { isAdmin, currentUser } = useAuth();
 
-  const total = assets.length;
-  const inUse = assets.filter((a) => a.status === "사용중").length;
-  const inStorage = assets.filter((a) => a.status === "보관중").length;
-  const inRepair = assets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
+  // 일반 사용자는 자신의 지사 자산만 표시
+  const displayAssets = isAdmin ? assets : assets.filter((a) => a.branchId === currentUser?.branchId);
+  const displayBranches = isAdmin ? branches : branches.filter((b) => b.id === currentUser?.branchId);
+
+  const total = displayAssets.length;
+  const inUse = displayAssets.filter((a) => a.status === "사용중").length;
+  const inStorage = displayAssets.filter((a) => a.status === "보관중").length;
+  const inRepair = displayAssets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,7 +46,7 @@ export default function AssetsPage() {
           <StatCard title="수리/폐기" value={inRepair} sub="점검 필요" color="red" />
         </div>
 
-        <AssetTable assets={assets} branches={branches} />
+        <AssetTable assets={displayAssets} branches={displayBranches} />
       </main>
     </div>
   );

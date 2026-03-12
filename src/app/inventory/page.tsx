@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import StatCard from "@/components/ui/StatCard";
 import { useAssets } from "@/lib/assetStore";
 import { useBranches } from "@/lib/branchStore";
+import { useAuth } from "@/lib/authStore";
 import { Asset } from "@/types";
 
 interface AssetGroup {
@@ -37,13 +38,18 @@ function groupAssets(assets: Asset[]): AssetGroup[] {
 export default function InventoryPage() {
   const { assets } = useAssets();
   const { branches } = useBranches();
+  const { isAdmin, currentUser } = useAuth();
 
-  const groups = groupAssets(assets);
-  const totalAssets = assets.length;
+  // 일반 사용자는 자신의 지사 자산만 표시
+  const displayAssets = isAdmin ? assets : assets.filter((a) => a.branchId === currentUser?.branchId);
+  const displayBranches = isAdmin ? branches : branches.filter((b) => b.id === currentUser?.branchId);
+
+  const groups = groupAssets(displayAssets);
+  const totalAssets = displayAssets.length;
   const totalKinds = groups.length;
-  const inUse = assets.filter((a) => a.status === "사용중").length;
-  const inStorage = assets.filter((a) => a.status === "보관중").length;
-  const inRepair = assets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
+  const inUse = displayAssets.filter((a) => a.status === "사용중").length;
+  const inStorage = displayAssets.filter((a) => a.status === "보관중").length;
+  const inRepair = displayAssets.filter((a) => a.status === "수리중" || a.status === "폐기").length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,7 +79,7 @@ export default function InventoryPage() {
                 <th className="text-center px-3 py-3 font-medium text-green-600">사용중</th>
                 <th className="text-center px-3 py-3 font-medium text-blue-500">보관중</th>
                 <th className="text-center px-3 py-3 font-medium text-yellow-500">수리/폐기</th>
-                {branches.map((b) => (
+                {displayBranches.map((b) => (
                   <th key={b.id} className="text-center px-3 py-3 font-medium text-gray-400 whitespace-nowrap">
                     {b.name}
                   </th>
@@ -83,7 +89,7 @@ export default function InventoryPage() {
             <tbody>
               {groups.length === 0 ? (
                 <tr>
-                  <td colSpan={6 + branches.length} className="text-center py-12 text-gray-400">
+                  <td colSpan={6 + displayBranches.length} className="text-center py-12 text-gray-400">
                     등록된 자산이 없습니다. 유형자산 메뉴에서 자산을 등록해 주세요.
                   </td>
                 </tr>
@@ -96,7 +102,7 @@ export default function InventoryPage() {
                     <td className="px-3 py-3 text-center text-green-600 font-medium">{g.inUse || <span className="text-gray-200">-</span>}</td>
                     <td className="px-3 py-3 text-center text-blue-500 font-medium">{g.inStorage || <span className="text-gray-200">-</span>}</td>
                     <td className="px-3 py-3 text-center text-yellow-500 font-medium">{g.inRepair || <span className="text-gray-200">-</span>}</td>
-                    {branches.map((b) => (
+                    {displayBranches.map((b) => (
                       <td key={b.id} className="px-3 py-3 text-center">
                         {g.byBranch[b.id] ? (
                           <span className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-xs font-medium">

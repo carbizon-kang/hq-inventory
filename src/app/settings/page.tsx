@@ -6,6 +6,7 @@ import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
 import { useAuth } from "@/lib/authStore";
 import { useOrg } from "@/lib/orgStore";
+import { useBranches } from "@/lib/branchStore";
 
 export default function SettingsPage() {
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -19,7 +20,9 @@ export default function SettingsPage() {
   const [itemError, setItemError] = useState("");
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
 
-  const { changePassword } = useAuth();
+  const { changePassword, isAdmin, currentUser, users, updateUser, deleteUser } = useAuth();
+  const { branches } = useBranches();
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
@@ -165,6 +168,63 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-gray-900">설정</h1>
           <p className="text-sm text-gray-500 mt-1">카테고리 및 시스템 설정 관리</p>
         </div>
+
+        {/* ── 사용자 관리 (관리자 전용) ── */}
+        {isAdmin && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <h2 className="text-base font-semibold text-gray-800 mb-1">사용자 관리</h2>
+            <p className="text-xs text-gray-400 mb-4">가입한 사용자의 권한과 담당 지사를 설정합니다.</p>
+            <ul className="space-y-2">
+              {users.map((u) => (
+                <li key={u.id} className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg bg-gray-50 border border-gray-100">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-800">{u.username}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${u.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"}`}>
+                      {u.role === "admin" ? "관리자" : "일반"}
+                    </span>
+                  </div>
+                  {/* 권한 변경 */}
+                  <select
+                    value={u.role}
+                    onChange={(e) => updateUser(u.id, { role: e.target.value as "admin" | "user" })}
+                    disabled={u.id === currentUser?.id}
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none disabled:opacity-40"
+                  >
+                    <option value="admin">관리자</option>
+                    <option value="user">일반 사용자</option>
+                  </select>
+                  {/* 지사 배정 */}
+                  <select
+                    value={u.branchId}
+                    onChange={(e) => updateUser(u.id, { branchId: e.target.value })}
+                    disabled={u.role === "admin"}
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none disabled:opacity-40"
+                  >
+                    <option value="">지사 미배정</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  {/* 삭제 */}
+                  {u.id !== currentUser?.id && (
+                    confirmDeleteUserId === u.id ? (
+                      <span className="flex items-center gap-1">
+                        <button onClick={() => { deleteUser(u.id); setConfirmDeleteUserId(null); }}
+                          className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded">삭제</button>
+                        <button onClick={() => setConfirmDeleteUserId(null)}
+                          className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteUserId(u.id)}
+                        className="text-xs text-red-400 hover:underline">삭제</button>
+                    )
+                  )}
+                </li>
+              ))}
+              {users.length === 0 && <p className="text-xs text-gray-400 text-center py-2">등록된 사용자가 없습니다.</p>}
+            </ul>
+          </div>
+        )}
 
         {/* ── 조직 계층 관리 ── */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6">

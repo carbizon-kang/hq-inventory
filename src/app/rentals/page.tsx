@@ -6,15 +6,21 @@ import StatCard from "@/components/ui/StatCard";
 import RentalTable from "@/components/rentals/RentalTable";
 import { useRentals } from "@/lib/rentalStore";
 import { useBranches } from "@/lib/branchStore";
+import { useAuth } from "@/lib/authStore";
 
 export default function RentalsPage() {
   const { rentals } = useRentals();
   const { branches } = useBranches();
+  const { isAdmin, currentUser } = useAuth();
 
-  const active      = rentals.filter((r) => r.status === "렌트중").length;
-  const copiers     = rentals.filter((r) => r.equipType === "복합기").length;
-  const purifiers   = rentals.filter((r) => r.equipType === "정수기").length;
-  const totalFee    = rentals
+  // 일반 사용자는 자신의 지사 렌트만 표시
+  const displayRentals = isAdmin ? rentals : rentals.filter((r) => r.branchId === currentUser?.branchId);
+  const displayBranches = isAdmin ? branches : branches.filter((b) => b.id === currentUser?.branchId);
+
+  const active      = displayRentals.filter((r) => r.status === "렌트중").length;
+  const copiers     = displayRentals.filter((r) => r.equipType === "복합기").length;
+  const purifiers   = displayRentals.filter((r) => r.equipType === "정수기").length;
+  const totalFee    = displayRentals
     .filter((r) => r.status === "렌트중")
     .reduce((sum, r) => sum + r.monthlyFee, 0);
 
@@ -44,7 +50,7 @@ export default function RentalsPage() {
           <StatCard title="정수기" value={purifiers} sub="전체 정수기 건수" color="blue" />
         </div>
 
-        <RentalTable rentals={rentals} branches={branches} />
+        <RentalTable rentals={displayRentals} branches={displayBranches} />
       </main>
     </div>
   );
