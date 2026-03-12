@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
 import { useAuth } from "@/lib/authStore";
+import { useOrg } from "@/lib/orgStore";
 
 export default function SettingsPage() {
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -24,6 +25,25 @@ export default function SettingsPage() {
   const [newPw2, setNewPw2] = useState("");
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
+
+  // 조직 관리
+  const { divisions, headquarters, teams, addOrgUnit, deleteOrgUnit, getHQsByDivision, getTeamsByHQ } = useOrg();
+  const [newDivName, setNewDivName] = useState("");
+  const [divError, setDivError] = useState("");
+  const [confirmDeleteDivId, setConfirmDeleteDivId] = useState<string | null>(null);
+
+  const [newHQName, setNewHQName] = useState("");
+  const [newHQParent, setNewHQParent] = useState("");
+  const [hqError, setHQError] = useState("");
+  const [confirmDeleteHQId, setConfirmDeleteHQId] = useState<string | null>(null);
+
+  const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamParent, setNewTeamParent] = useState("");
+  const [teamError, setTeamError] = useState("");
+  const [confirmDeleteTeamId, setConfirmDeleteTeamId] = useState<string | null>(null);
+
+  // 본부 추가 시 선택한 부문에 해당하는 본부 목록 (팀 부모 선택에 사용)
+  const hqsForTeam = newTeamParent ? [] : headquarters;
 
   async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,6 +97,56 @@ export default function SettingsPage() {
     setError("");
   }
 
+  async function handleAddDivision(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = newDivName.trim();
+    if (!name) { setDivError("부문명을 입력해 주세요."); return; }
+    if (divisions.some((d) => d.name === name)) { setDivError("이미 존재하는 부문입니다."); return; }
+    try {
+      await addOrgUnit("부문", name, "");
+      setNewDivName("");
+      setDivError("");
+    } catch (err) {
+      setDivError(err instanceof Error ? err.message : "추가 실패");
+    }
+  }
+
+  async function handleAddHQ(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = newHQName.trim();
+    if (!name) { setHQError("본부명을 입력해 주세요."); return; }
+    if (!newHQParent) { setHQError("상위 부문을 선택해 주세요."); return; }
+    if (headquarters.some((h) => h.name === name && h.parentName === newHQParent)) {
+      setHQError("해당 부문에 이미 존재하는 본부입니다."); return;
+    }
+    try {
+      await addOrgUnit("본부", name, newHQParent);
+      setNewHQName("");
+      setNewHQParent("");
+      setHQError("");
+    } catch (err) {
+      setHQError(err instanceof Error ? err.message : "추가 실패");
+    }
+  }
+
+  async function handleAddTeam(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = newTeamName.trim();
+    if (!name) { setTeamError("팀명을 입력해 주세요."); return; }
+    if (!newTeamParent) { setTeamError("상위 본부를 선택해 주세요."); return; }
+    if (teams.some((t) => t.name === name && t.parentName === newTeamParent)) {
+      setTeamError("해당 본부에 이미 존재하는 팀입니다."); return;
+    }
+    try {
+      await addOrgUnit("팀", name, newTeamParent);
+      setNewTeamName("");
+      setNewTeamParent("");
+      setTeamError("");
+    } catch (err) {
+      setTeamError(err instanceof Error ? err.message : "추가 실패");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -84,6 +154,153 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">설정</h1>
           <p className="text-sm text-gray-500 mt-1">카테고리 및 시스템 설정 관리</p>
+        </div>
+
+        {/* ── 조직 계층 관리 ── */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800 mb-1">조직 계층 관리</h2>
+            <p className="text-xs text-gray-400">부문 → 본부 → 팀 순서로 추가하세요. 지사 등록 시 드롭다운으로 선택됩니다.</p>
+          </div>
+
+          {/* 부문 */}
+          <div>
+            <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-1">
+              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">부문</span>
+            </h3>
+            <form onSubmit={handleAddDivision} className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newDivName}
+                onChange={(e) => { setNewDivName(e.target.value); setDivError(""); }}
+                placeholder="부문명 (예: 영업부문)"
+                className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${divError ? "border-red-400" : "border-gray-200"}`}
+              />
+              <button type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >+ 추가</button>
+            </form>
+            {divError && <p className="text-xs text-red-500 mb-2">{divError}</p>}
+            <ul className="space-y-1.5">
+              {divisions.map((d) => (
+                <li key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                  <span className="text-sm font-medium text-gray-800">{d.name}</span>
+                  {confirmDeleteDivId === d.id ? (
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => { deleteOrgUnit(d.id); setConfirmDeleteDivId(null); }}
+                        className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
+                      <button onClick={() => setConfirmDeleteDivId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteDivId(d.id)}
+                      className="text-xs text-red-400 hover:underline">삭제</button>
+                  )}
+                </li>
+              ))}
+              {divisions.length === 0 && <p className="text-xs text-gray-400 text-center py-2">등록된 부문이 없습니다.</p>}
+            </ul>
+          </div>
+
+          {/* 본부 */}
+          <div>
+            <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-1">
+              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">본부</span>
+            </h3>
+            <form onSubmit={handleAddHQ} className="flex gap-2 mb-3">
+              <select
+                value={newHQParent}
+                onChange={(e) => { setNewHQParent(e.target.value); setHQError(""); }}
+                className={`w-36 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white ${hqError && !newHQParent ? "border-red-400" : "border-gray-200"}`}
+              >
+                <option value="">부문 선택</option>
+                {divisions.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+              <input
+                type="text"
+                value={newHQName}
+                onChange={(e) => { setNewHQName(e.target.value); setHQError(""); }}
+                placeholder="본부명 (예: 수도권본부)"
+                className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${hqError && !newHQName ? "border-red-400" : "border-gray-200"}`}
+              />
+              <button type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >+ 추가</button>
+            </form>
+            {hqError && <p className="text-xs text-red-500 mb-2">{hqError}</p>}
+            <ul className="space-y-1.5">
+              {headquarters.map((h) => (
+                <li key={h.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                  <div>
+                    <span className="text-xs text-blue-500 mr-2">{h.parentName}</span>
+                    <span className="text-sm font-medium text-gray-800">{h.name}</span>
+                  </div>
+                  {confirmDeleteHQId === h.id ? (
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => { deleteOrgUnit(h.id); setConfirmDeleteHQId(null); }}
+                        className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
+                      <button onClick={() => setConfirmDeleteHQId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteHQId(h.id)}
+                      className="text-xs text-red-400 hover:underline">삭제</button>
+                  )}
+                </li>
+              ))}
+              {headquarters.length === 0 && <p className="text-xs text-gray-400 text-center py-2">등록된 본부가 없습니다.</p>}
+            </ul>
+          </div>
+
+          {/* 팀 */}
+          <div>
+            <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-1">
+              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">팀</span>
+            </h3>
+            <form onSubmit={handleAddTeam} className="flex gap-2 mb-3">
+              <select
+                value={newTeamParent}
+                onChange={(e) => { setNewTeamParent(e.target.value); setTeamError(""); }}
+                className={`w-36 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white ${teamError && !newTeamParent ? "border-red-400" : "border-gray-200"}`}
+              >
+                <option value="">본부 선택</option>
+                {headquarters.map((h) => <option key={h.id} value={h.name}>{h.name}</option>)}
+              </select>
+              <input
+                type="text"
+                value={newTeamName}
+                onChange={(e) => { setNewTeamName(e.target.value); setTeamError(""); }}
+                placeholder="팀명 (예: 서울팀)"
+                className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${teamError && !newTeamName ? "border-red-400" : "border-gray-200"}`}
+              />
+              <button type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >+ 추가</button>
+            </form>
+            {teamError && <p className="text-xs text-red-500 mb-2">{teamError}</p>}
+            <ul className="space-y-1.5">
+              {teams.map((t) => (
+                <li key={t.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                  <div>
+                    <span className="text-xs text-blue-500 mr-2">{t.parentName}</span>
+                    <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                  </div>
+                  {confirmDeleteTeamId === t.id ? (
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => { deleteOrgUnit(t.id); setConfirmDeleteTeamId(null); }}
+                        className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors">삭제</button>
+                      <button onClick={() => setConfirmDeleteTeamId(null)}
+                        className="text-xs text-gray-500 hover:text-gray-700">취소</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteTeamId(t.id)}
+                      className="text-xs text-red-400 hover:underline">삭제</button>
+                  )}
+                </li>
+              ))}
+              {teams.length === 0 && <p className="text-xs text-gray-400 text-center py-2">등록된 팀이 없습니다.</p>}
+            </ul>
+          </div>
         </div>
 
         {/* 품명 관리 */}
@@ -160,7 +377,6 @@ export default function SettingsPage() {
           <h2 className="text-base font-semibold text-gray-800 mb-1">카테고리 관리</h2>
           <p className="text-xs text-gray-400 mb-4">재고 품목 및 자산에 적용되는 카테고리를 관리합니다.</p>
 
-          {/* 추가 폼 */}
           <form onSubmit={handleAdd} className="flex gap-2 mb-4">
             <input
               type="text"
@@ -180,7 +396,6 @@ export default function SettingsPage() {
           </form>
           {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
-          {/* 카테고리 목록 */}
           <ul className="space-y-2">
             {categories.map((cat) => (
               <li

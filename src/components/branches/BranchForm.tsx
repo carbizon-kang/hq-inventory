@@ -5,40 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Branch } from "@/types";
 import { useBranches } from "@/lib/branchStore";
+import { useOrg } from "@/lib/orgStore";
 
 interface BranchFormProps {
   branch?: Branch;
 }
 
-// 자동완성 입력 필드 (기존 값 datalist 제공)
-function AutoInput({ id, label, value, onChange, placeholder, list, options }: {
-  id: string; label: string; value: string;
-  onChange: (v: string) => void; placeholder: string;
-  list: string; options: string[];
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type="text"
-        list={list}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        autoComplete="off"
-      />
-      <datalist id={list}>
-        {options.map((o) => <option key={o} value={o} />)}
-      </datalist>
-    </div>
-  );
-}
-
 export default function BranchForm({ branch }: BranchFormProps) {
   const isEdit = !!branch;
   const router = useRouter();
-  const { branches, addBranch, updateBranch } = useBranches();
+  const { addBranch, updateBranch } = useBranches();
+  const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
 
   const [division,     setDivision]     = useState(branch?.division ?? "");
   const [headquarters, setHeadquarters] = useState(branch?.headquarters ?? "");
@@ -52,18 +29,20 @@ export default function BranchForm({ branch }: BranchFormProps) {
   const [success,      setSuccess]      = useState(false);
   const [submitting,   setSubmitting]   = useState(false);
 
-  // 기존 등록 값으로 자동완성 목록 (연계 필터)
-  const uniqueDivisions = Array.from(new Set(branches.map((b) => b.division).filter(Boolean))).sort();
-  const uniqueHQs = Array.from(new Set(
-    branches.filter((b) => !division || b.division === division)
-            .map((b) => b.headquarters).filter(Boolean)
-  )).sort();
-  const uniqueTeams = Array.from(new Set(
-    branches.filter((b) =>
-      (!division     || b.division     === division) &&
-      (!headquarters || b.headquarters === headquarters)
-    ).map((b) => b.team).filter(Boolean)
-  )).sort();
+  // 연계 드롭다운 옵션
+  const hqOptions   = division ? getHQsByDivision(division) : [];
+  const teamOptions = headquarters ? getTeamsByHQ(headquarters) : [];
+
+  function handleDivisionChange(v: string) {
+    setDivision(v);
+    setHeadquarters("");
+    setTeam("");
+  }
+
+  function handleHQChange(v: string) {
+    setHeadquarters(v);
+    setTeam("");
+  }
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -138,15 +117,55 @@ export default function BranchForm({ branch }: BranchFormProps) {
             <span className="text-gray-300">›</span>
             <span className={name ? "text-blue-800 font-bold" : "text-gray-300"}>{name || "사업장"}</span>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <AutoInput id="div" label="부문" value={division} onChange={setDivision}
-              placeholder="예: 영업부문" list="div-list" options={uniqueDivisions} />
-            <AutoInput id="hq" label="본부" value={headquarters} onChange={setHeadquarters}
-              placeholder="예: 수도권본부" list="hq-list" options={uniqueHQs} />
-            <AutoInput id="team" label="팀" value={team} onChange={setTeam}
-              placeholder="예: 서울팀" list="team-list" options={uniqueTeams} />
+            {/* 부문 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">부문</label>
+              <select
+                value={division}
+                onChange={(e) => handleDivisionChange(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+              >
+                <option value="">선택 안 함</option>
+                {divisions.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+
+            {/* 본부 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">본부</label>
+              <select
+                value={headquarters}
+                onChange={(e) => handleHQChange(e.target.value)}
+                disabled={!division || hqOptions.length === 0}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white disabled:opacity-40"
+              >
+                <option value="">선택 안 함</option>
+                {hqOptions.map((h) => <option key={h.id} value={h.name}>{h.name}</option>)}
+              </select>
+            </div>
+
+            {/* 팀 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">팀</label>
+              <select
+                value={team}
+                onChange={(e) => setTeam(e.target.value)}
+                disabled={!headquarters || teamOptions.length === 0}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white disabled:opacity-40"
+              >
+                <option value="">선택 안 함</option>
+                {teamOptions.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+              </select>
+            </div>
           </div>
-          <p className="text-xs text-blue-400">기존에 입력한 값이 자동완성으로 제안됩니다</p>
+
+          {divisions.length === 0 && (
+            <p className="text-xs text-blue-400">
+              설정 페이지에서 부문/본부/팀을 먼저 등록하면 여기서 선택할 수 있습니다.
+            </p>
+          )}
         </div>
       </div>
 
