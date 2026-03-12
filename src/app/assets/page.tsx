@@ -13,12 +13,13 @@ export default function AssetsPage() {
   const { branches } = useBranches();
   const { isAdmin, currentUser } = useAuth();
 
-  // 일반 사용자는 자신의 부문 자산만 표시
-  const displayBranches = isAdmin
+  // 부문 미지정(division="")이면 전체, 부문 지정이면 해당 부문만 표시
+  const userDiv = currentUser?.division ?? "";
+  const displayBranches = (isAdmin || userDiv === "")
     ? branches
-    : branches.filter((b) => b.division === currentUser?.division);
+    : branches.filter((b) => b.division === userDiv);
   const displayBranchIds = new Set(displayBranches.map((b) => b.id));
-  const displayAssets = isAdmin ? assets : assets.filter((a) => displayBranchIds.has(a.branchId));
+  const displayAssets = (isAdmin || userDiv === "") ? assets : assets.filter((a) => displayBranchIds.has(a.branchId));
 
   const total = displayAssets.length;
   const inUse = displayAssets.filter((a) => a.status === "사용중").length;

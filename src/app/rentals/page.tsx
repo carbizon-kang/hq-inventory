@@ -13,12 +13,13 @@ export default function RentalsPage() {
   const { branches } = useBranches();
   const { isAdmin, currentUser } = useAuth();
 
-  // 일반 사용자는 자신의 부문 렌트만 표시
-  const displayBranches = isAdmin
+  // 부문 미지정(division="")이면 전체, 부문 지정이면 해당 부문만 표시
+  const userDiv = currentUser?.division ?? "";
+  const displayBranches = (isAdmin || userDiv === "")
     ? branches
-    : branches.filter((b) => b.division === currentUser?.division);
+    : branches.filter((b) => b.division === userDiv);
   const displayBranchIds = new Set(displayBranches.map((b) => b.id));
-  const displayRentals = isAdmin ? rentals : rentals.filter((r) => displayBranchIds.has(r.branchId));
+  const displayRentals = (isAdmin || userDiv === "") ? rentals : rentals.filter((r) => displayBranchIds.has(r.branchId));
 
   const active      = displayRentals.filter((r) => r.status === "렌트중").length;
   const copiers     = displayRentals.filter((r) => r.equipType === "복합기").length;

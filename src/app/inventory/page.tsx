@@ -76,12 +76,13 @@ export default function InventoryPage() {
 
   const [selectedDiv, setSelectedDiv] = useState<string | null>(null);
 
-  // 접근 가능한 지사 범위
-  const scopeBranches = isAdmin
+  // 부문 미지정(division="")이면 전체, 부문 지정이면 해당 부문만 표시
+  const userDiv = currentUser?.division ?? "";
+  const scopeBranches = (isAdmin || userDiv === "")
     ? branches
-    : branches.filter((b) => b.division === currentUser?.division);
+    : branches.filter((b) => b.division === userDiv);
   const scopeBranchIds = new Set(scopeBranches.map((b) => b.id));
-  const scopeAssets = isAdmin ? assets : assets.filter((a) => scopeBranchIds.has(a.branchId));
+  const scopeAssets = (isAdmin || userDiv === "") ? assets : assets.filter((a) => scopeBranchIds.has(a.branchId));
 
   // 지사 id → 부문명 / 본부명 매핑
   const branchDivMap: Record<string, string> = {};
