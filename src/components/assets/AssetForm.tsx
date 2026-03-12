@@ -7,6 +7,7 @@ import { useAssets } from "@/lib/assetStore";
 import { useBranches } from "@/lib/branchStore";
 import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
+import { useOrg } from "@/lib/orgStore";
 
 const STATUSES: AssetStatus[] = ["사용중", "보관중", "수리중", "폐기"];
 
@@ -73,6 +74,33 @@ export default function AssetForm({ asset }: AssetFormProps) {
   const { branches } = useBranches();
   const { categories } = useCategories();
   const { items } = useItems();
+
+  const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
+
+  // 지사 필터용 상태
+  const [filterDiv,  setFilterDiv]  = useState("");
+  const [filterHQ,   setFilterHQ]   = useState("");
+  const [filterTeam, setFilterTeam] = useState("");
+
+  // 계층 필터에 따른 지사 목록
+  const filteredBranches = branches.filter((b) => {
+    if (filterDiv  && b.division     !== filterDiv)  return false;
+    if (filterHQ   && b.headquarters !== filterHQ)   return false;
+    if (filterTeam && b.team         !== filterTeam) return false;
+    return true;
+  });
+
+  const hqOptions   = filterDiv  ? getHQsByDivision(filterDiv)  : [];
+  const teamOptions = filterHQ   ? getTeamsByHQ(filterHQ)       : [];
+
+  function handleFilterDiv(v: string) {
+    setFilterDiv(v); setFilterHQ(""); setFilterTeam("");
+    setBranchId("");
+  }
+  function handleFilterHQ(v: string) {
+    setFilterHQ(v); setFilterTeam("");
+    setBranchId("");
+  }
 
   const [name, setName] = useState(asset?.name ?? "");
   const [prefix, setPrefix] = useState(() => {
@@ -234,32 +262,67 @@ export default function AssetForm({ asset }: AssetFormProps) {
         </p>
       </div>
 
-      {/* 카테고리 + 지사 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            카테고리 <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            현재 지사 <span className="text-red-500">*</span>
-          </label>
+      {/* 카테고리 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          카테고리 <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* 지사 선택 (계층 필터) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          현재 지사 <span className="text-red-500">*</span>
+        </label>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-2">
+          {/* 부문→본부→팀 필터 */}
+          {divisions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={filterDiv}
+                onChange={(e) => handleFilterDiv(e.target.value)}
+                className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                <option value="">전체 부문</option>
+                {divisions.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+              <select
+                value={filterHQ}
+                onChange={(e) => handleFilterHQ(e.target.value)}
+                disabled={!filterDiv || hqOptions.length === 0}
+                className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-40"
+              >
+                <option value="">전체 본부</option>
+                {hqOptions.map((h) => <option key={h.id} value={h.name}>{h.name}</option>)}
+              </select>
+              <select
+                value={filterTeam}
+                onChange={(e) => { setFilterTeam(e.target.value); setBranchId(""); }}
+                disabled={!filterHQ || teamOptions.length === 0}
+                className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-40"
+              >
+                <option value="">전체 팀</option>
+                {teamOptions.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+              </select>
+            </div>
+          )}
+          {/* 지사 드롭다운 */}
           <select
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
-            {branches.map((b) => (
+            <option value="">지사를 선택하세요</option>
+            {filteredBranches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
