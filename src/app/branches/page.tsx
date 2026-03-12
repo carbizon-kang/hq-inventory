@@ -67,8 +67,8 @@ export default function BranchesPage() {
           const filtered = branches.filter((b) =>
             !search ||
             b.name.includes(search) ||
-            (b.address ?? "").includes(search) ||
-            (b.manager ?? "").includes(search)
+            b.location.includes(search) ||
+            b.manager.includes(search)
           );
           return filtered.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-12">
