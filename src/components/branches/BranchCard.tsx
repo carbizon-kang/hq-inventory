@@ -52,8 +52,14 @@ export default function BranchCard({ branch }: BranchCardProps) {
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all">
       <div className="flex items-center px-5 py-4 gap-4">
 
-        {/* 지사명 + 위치 */}
+        {/* 지사명 + 계층 경로 */}
         <Link href={`/branches/${branch.id}`} className="flex-1 min-w-0">
+          {/* 계층 경로 (등록된 경우만 표시) */}
+          {(branch.division || branch.headquarters || branch.team) && (
+            <p className="text-xs text-blue-500 mb-0.5 truncate flex items-center gap-1">
+              {[branch.division, branch.headquarters, branch.team].filter(Boolean).join(" › ")}
+            </p>
+          )}
           <p className="text-sm font-bold text-gray-900 truncate">{branch.name}</p>
           <p className="text-xs text-gray-400 mt-0.5 truncate">{branch.location}</p>
         </Link>

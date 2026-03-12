@@ -1,10 +1,13 @@
 // 지사 정보 타입
 export interface Branch {
   id: string;
-  name: string;
-  location: string;
-  manager: string;
-  contact: string;
+  name: string;       // 사업장명
+  location: string;   // 지역
+  manager: string;    // 담당자
+  contact: string;    // 연락처
+  division: string;       // 부문
+  headquarters: string;   // 본부
+  team: string;           // 팀
 }
 
 // 재고 항목 타입
