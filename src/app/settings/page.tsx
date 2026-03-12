@@ -42,9 +42,6 @@ export default function SettingsPage() {
   const [teamError, setTeamError] = useState("");
   const [confirmDeleteTeamId, setConfirmDeleteTeamId] = useState<string | null>(null);
 
-  // 본부 추가 시 선택한 부문에 해당하는 본부 목록 (팀 부모 선택에 사용)
-  const hqsForTeam = newTeamParent ? [] : headquarters;
-
   async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setPwError("");
