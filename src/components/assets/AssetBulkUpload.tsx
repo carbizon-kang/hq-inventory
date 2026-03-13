@@ -186,8 +186,11 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
     if (file) handleFile(file);
   }
 
-  // 템플릿 다운로드 (부문/본부/팀 열 포함)
+  // 템플릿 다운로드 (부문/본부/팀 열 + 참고 시트 포함)
   function downloadTemplate() {
+    const wb = XLSX.utils.book_new();
+
+    // ── 등록 시트 ──
     const headers = ["부문", "본부", "팀", "지사명", "품명", "카테고리", "상태", "구매일", "매입금액", "내용연수", "비고"];
     const b = branches[0];
     const example = [
@@ -205,8 +208,35 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
     ];
     const ws = XLSX.utils.aoa_to_sheet([headers, example]);
     ws["!cols"] = headers.map((h) => ({ wch: h === "지사명" || h === "품명" ? 18 : 14 }));
-    const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "자산등록");
+
+    // ── 참고 시트: 등록된 부문/본부/팀/지사 목록 ──
+    // 부문, 본부(상위부문), 팀(상위본부), 지사(부문>본부>팀) 4열로 구성
+    const divNames   = [...new Set(branches.map((b) => b.division).filter(Boolean))];
+    const hqRows     = [...new Set(branches.map((b) => b.headquarters).filter(Boolean))];
+    const teamRows   = [...new Set(branches.map((b) => b.team).filter(Boolean))];
+    const branchRows = branches.map((b) => {
+      const parts = [b.division, b.headquarters, b.team].filter(Boolean);
+      return parts.length > 0 ? `${parts.join(" > ")} > ${b.name}` : b.name;
+    });
+
+    const maxLen = Math.max(divNames.length, hqRows.length, teamRows.length, branchRows.length);
+    const refData: (string | null)[][] = [
+      ["【부문】", "【본부】", "【팀】", "【지사(사업장) 전체 목록】"],
+    ];
+    for (let i = 0; i < maxLen; i++) {
+      refData.push([
+        divNames[i]   ?? null,
+        hqRows[i]     ?? null,
+        teamRows[i]   ?? null,
+        branchRows[i] ?? null,
+      ]);
+    }
+
+    const wsRef = XLSX.utils.aoa_to_sheet(refData);
+    wsRef["!cols"] = [{ wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsRef, "참고(부문·본부·팀·지사목록)");
+
     XLSX.writeFile(wb, "자산_일괄등록_양식.xlsx");
   }
 
