@@ -9,6 +9,7 @@ interface AssetContextType {
   transfers: AssetTransfer[];
   loading: boolean;
   addAsset: (asset: Omit<Asset, "id">) => Promise<void>;
+  bulkAddAssets: (assets: Omit<Asset, "id">[]) => Promise<{ success: number; errors: string[] }>;
   updateAsset: (id: string, data: Partial<Omit<Asset, "id">>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   addTransfer: (transfer: Omit<AssetTransfer, "id">) => Promise<void>;
@@ -104,6 +105,35 @@ export function AssetProvider({ children }: { children: ReactNode }) {
     await loadAssets();
   }
 
+  async function bulkAddAssets(assetsToAdd: Omit<Asset, "id">[]): Promise<{ success: number; errors: string[] }> {
+    const rows = assetsToAdd.map((a, i) => ({
+      id: `a${Date.now()}${i}`,
+      asset_number: a.assetNumber,
+      name: a.name,
+      category: a.category,
+      branch_id: a.branchId,
+      status: a.status,
+      purchase_date: a.purchaseDate,
+      purchase_price: a.purchasePrice,
+      depreciation_years: a.depreciationYears,
+      note: a.note,
+    }));
+    const errors: string[] = [];
+    let success = 0;
+    // 10개씩 배치 insert
+    for (let i = 0; i < rows.length; i += 10) {
+      const batch = rows.slice(i, i + 10);
+      const { error } = await supabase.from("assets").insert(batch);
+      if (error) {
+        errors.push(`${i + 1}~${i + batch.length}행 오류: ${error.message}`);
+      } else {
+        success += batch.length;
+      }
+    }
+    await loadAssets();
+    return { success, errors };
+  }
+
   async function updateAsset(id: string, data: Partial<Omit<Asset, "id">>) {
     const row: Record<string, unknown> = {};
     if (data.assetNumber !== undefined) row.asset_number = data.assetNumber;
@@ -171,7 +201,7 @@ export function AssetProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AssetContext.Provider value={{ assets, transfers, loading, addAsset, updateAsset, deleteAsset, addTransfer, updateTransfer, deleteTransfer, getAssetTransfers }}>
+    <AssetContext.Provider value={{ assets, transfers, loading, addAsset, bulkAddAssets, updateAsset, deleteAsset, addTransfer, updateTransfer, deleteTransfer, getAssetTransfers }}>
       {children}
     </AssetContext.Provider>
   );
