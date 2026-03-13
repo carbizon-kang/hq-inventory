@@ -35,6 +35,9 @@ const STATUSES: AssetStatus[] = ["사용중", "보관중", "수리중", "폐기"
 export interface BulkRow {
   name: string;
   category: string;
+  division: string;
+  headquarters: string;
+  team: string;
   branchName: string;
   branchId: string;
   status: AssetStatus;
@@ -42,7 +45,7 @@ export interface BulkRow {
   purchasePrice: number;
   depreciationYears: number;
   note: string;
-  assetNumber: string; // 자동 채번
+  assetNumber: string;
   error?: string;
 }
 
@@ -62,9 +65,8 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: number; errors: string[] } | null>(null);
 
-  // 자산번호 자동 채번: 기존 assets + 이번 배치에서 이미 사용한 번호 기반
+  // 자산번호 자동 채번
   function assignNumbers(parsed: Omit<BulkRow, "assetNumber">[]): BulkRow[] {
-    // prefix별 현재 최대값
     const maxMap: Record<string, number> = {};
     for (const a of assets) {
       const match = a.assetNumber.match(/^([A-Z]+)-(\d+)$/);
@@ -74,14 +76,41 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
         if (!maxMap[p] || n > maxMap[p]) maxMap[p] = n;
       }
     }
-
     return parsed.map((row) => {
       const prefix = getPrefix(row.name, items);
       const next = (maxMap[prefix] ?? 0) + 1;
       maxMap[prefix] = next;
-      const assetNumber = `${prefix}-${String(next).padStart(3, "0")}`;
-      return { ...row, assetNumber };
+      return { ...row, assetNumber: `${prefix}-${String(next).padStart(3, "0")}` };
     });
+  }
+
+  // 지사 매칭: 부문+본부+팀+지사명 조합으로 정확하게 찾기
+  function findBranch(divVal: string, hqVal: string, teamVal: string, branchNameVal: string) {
+    // 1순위: 부문+본부+팀+지사명 모두 일치
+    if (divVal || hqVal || teamVal) {
+      const exact = branches.find((b) =>
+        (!divVal  || b.division     === divVal)  &&
+        (!hqVal   || b.headquarters === hqVal)   &&
+        (!teamVal || b.team         === teamVal) &&
+        (b.name === branchNameVal)
+      );
+      if (exact) return exact;
+
+      // 2순위: 부문/본부/팀만으로 필터링 후 지사명 포함 검색
+      const filtered = branches.filter((b) =>
+        (!divVal  || b.division     === divVal)  &&
+        (!hqVal   || b.headquarters === hqVal)   &&
+        (!teamVal || b.team         === teamVal)
+      );
+      const partial = filtered.find((b) => b.name === branchNameVal || b.name.includes(branchNameVal));
+      if (partial) return partial;
+    }
+
+    // 3순위: 지사명만으로 검색
+    if (branchNameVal) {
+      return branches.find((b) => b.name === branchNameVal || b.name.includes(branchNameVal));
+    }
+    return undefined;
   }
 
   // 엑셀 파일 파싱
@@ -97,17 +126,19 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
       const defaultCategory = categories[0]?.name ?? "";
 
       const parsed: Omit<BulkRow, "assetNumber">[] = raw.map((r) => {
-        const nameVal = String(r["품명"] ?? r["name"] ?? "").trim();
-        const branchName = String(r["지사명"] ?? r["사업장명"] ?? "").trim();
-        const branch = branches.find(
-          (b) => b.name === branchName || b.name.includes(branchName)
-        );
+        const nameVal      = String(r["품명"]  ?? "").trim();
+        const divVal       = String(r["부문"]  ?? "").trim();
+        const hqVal        = String(r["본부"]  ?? "").trim();
+        const teamVal      = String(r["팀"]    ?? "").trim();
+        const branchName   = String(r["지사명"] ?? r["사업장명"] ?? "").trim();
+
+        const branch = findBranch(divVal, hqVal, teamVal, branchName);
+
         const statusVal = String(r["상태"] ?? "사용중").trim() as AssetStatus;
         const status = STATUSES.includes(statusVal) ? statusVal : "사용중";
 
-        // 날짜 처리: Date 객체 또는 문자열
         let purchaseDate = today;
-        const rawDate = r["구매일"] ?? r["purchase_date"];
+        const rawDate = r["구매일"];
         if (rawDate instanceof Date) {
           purchaseDate = rawDate.toISOString().split("T")[0];
         } else if (typeof rawDate === "string" && rawDate) {
@@ -116,18 +147,24 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
 
         const errors: string[] = [];
         if (!nameVal) errors.push("품명 필수");
-        if (!branch) errors.push(`지사 '${branchName}' 없음`);
+        if (!branch) {
+          const hint = [divVal, hqVal, teamVal, branchName].filter(Boolean).join(" > ");
+          errors.push(`지사 미매칭: '${hint || "값 없음"}'`);
+        }
 
         return {
           name: nameVal,
-          category: String(r["카테고리"] ?? r["category"] ?? defaultCategory).trim() || defaultCategory,
-          branchName,
-          branchId: branch?.id ?? "",
+          category: String(r["카테고리"] ?? defaultCategory).trim() || defaultCategory,
+          division:     divVal,
+          headquarters: hqVal,
+          team:         teamVal,
+          branchName:   branch?.name ?? branchName,
+          branchId:     branch?.id ?? "",
           status,
           purchaseDate,
-          purchasePrice: Number(String(r["매입금액"] ?? r["purchase_price"] ?? "0").replace(/,/g, "")) || 0,
-          depreciationYears: Number(r["내용연수"] ?? r["depreciation_years"] ?? 0) || 0,
-          note: String(r["비고"] ?? r["note"] ?? "").trim(),
+          purchasePrice: Number(String(r["매입금액"] ?? "0").replace(/,/g, "")) || 0,
+          depreciationYears: Number(r["내용연수"] ?? 0) || 0,
+          note: String(r["비고"] ?? "").trim(),
           error: errors.length > 0 ? errors.join(", ") : undefined,
         };
       });
@@ -135,6 +172,7 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
       setRows(assignNumbers(parsed));
     };
     reader.readAsArrayBuffer(file);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets, branches, categories, items]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -148,15 +186,25 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
     if (file) handleFile(file);
   }
 
-  // 템플릿 다운로드
+  // 템플릿 다운로드 (부문/본부/팀 열 포함)
   function downloadTemplate() {
-    const headers = ["품명", "카테고리", "지사명", "상태", "구매일", "매입금액", "내용연수", "비고"];
+    const headers = ["부문", "본부", "팀", "지사명", "품명", "카테고리", "상태", "구매일", "매입금액", "내용연수", "비고"];
+    const b = branches[0];
     const example = [
-      "노트북", "PC/모바일", branches[0]?.name ?? "강남지사", "사용중",
-      new Date().toISOString().split("T")[0], 1500000, 5, "예시"
+      b?.division ?? "영업부문",
+      b?.headquarters ?? "수도권본부",
+      b?.team ?? "서울팀",
+      b?.name ?? "강남지사",
+      "노트북",
+      categories[0]?.name ?? "PC/모바일",
+      "사용중",
+      new Date().toISOString().split("T")[0],
+      1500000,
+      5,
+      "예시",
     ];
     const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws["!cols"] = headers.map(() => ({ wch: 16 }));
+    ws["!cols"] = headers.map((h) => ({ wch: h === "지사명" || h === "품명" ? 18 : 14 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "자산등록");
     XLSX.writeFile(wb, "자산_일괄등록_양식.xlsx");
@@ -194,8 +242,8 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
         <p className="text-sm font-medium text-blue-800 mb-2">① 양식 다운로드</p>
         <p className="text-xs text-blue-600 mb-3">
-          아래 버튼으로 엑셀 양식을 받아 작성 후 업로드하세요.
-          <br />필수 열: <strong>품명, 지사명</strong> / 선택: 카테고리, 상태, 구매일, 매입금액, 내용연수, 비고
+          양식을 받아 작성 후 업로드하세요.<br />
+          필수: <strong>품명, 지사명</strong> / 권장: <strong>부문, 본부, 팀</strong> (동일 지사명이 있을 때 정확한 매칭)
         </p>
         <button
           onClick={downloadTemplate}
@@ -217,13 +265,7 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
           <p className="text-sm text-gray-500">엑셀 파일을 여기에 끌어다 놓거나 클릭하여 선택</p>
           <p className="text-xs text-gray-400 mt-1">.xlsx, .xls 파일</p>
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+        <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" />
       </div>
 
       {/* Step 3: 미리보기 */}
@@ -231,50 +273,49 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-gray-700">
-              ③ 미리보기 &nbsp;
+              ③ 미리보기&nbsp;
               <span className="text-green-600">{validCount}건 정상</span>
               {errorCount > 0 && <span className="text-red-500 ml-2">{errorCount}건 오류</span>}
             </p>
             <button
               onClick={() => { setRows([]); setResult(null); if (fileRef.current) fileRef.current.value = ""; }}
               className="text-xs text-gray-400 hover:text-gray-600"
-            >
-              초기화
-            </button>
+            >초기화</button>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">자산번호(자동)</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 whitespace-nowrap">자산번호(자동)</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">품명</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">카테고리</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500">부문</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500">본부</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500">팀</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">지사명</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">상태</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">구매일</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">매입금액</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">비고</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">상태</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500">결과</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={`border-b border-gray-100 ${row.error ? "bg-red-50" : "hover:bg-gray-50"}`}
-                  >
-                    <td className="px-3 py-2 font-mono text-blue-700 font-medium">{row.assetNumber}</td>
+                  <tr key={i} className={`border-b border-gray-100 ${row.error ? "bg-red-50" : "hover:bg-gray-50"}`}>
+                    <td className="px-3 py-2 font-mono text-blue-700 font-medium whitespace-nowrap">{row.assetNumber}</td>
                     <td className="px-3 py-2 text-gray-800">{row.name || <span className="text-red-400">-</span>}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.category}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.branchName || <span className="text-red-400">-</span>}</td>
+                    <td className="px-3 py-2 text-gray-500">{row.division || "-"}</td>
+                    <td className="px-3 py-2 text-gray-500">{row.headquarters || "-"}</td>
+                    <td className="px-3 py-2 text-gray-500">{row.team || "-"}</td>
+                    <td className="px-3 py-2 text-gray-700 font-medium">{row.branchName || <span className="text-red-400">-</span>}</td>
                     <td className="px-3 py-2 text-gray-600">{row.status}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.purchaseDate}</td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{row.purchaseDate}</td>
+                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
                       {row.purchasePrice > 0 ? row.purchasePrice.toLocaleString() + "원" : "-"}
                     </td>
                     <td className="px-3 py-2 text-gray-500">{row.note || "-"}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       {row.error
                         ? <span className="text-red-500">{row.error}</span>
                         : <span className="text-green-600">✓</span>
@@ -286,7 +327,6 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
             </table>
           </div>
 
-          {/* 결과 메시지 */}
           {result && (
             <div className={`mt-3 rounded-lg px-4 py-3 text-sm font-medium ${
               result.errors.length === 0
@@ -302,7 +342,6 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
             </div>
           )}
 
-          {/* 등록 버튼 */}
           {!result && (
             <div className="flex gap-3 mt-4">
               <button
@@ -312,10 +351,7 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
               >
                 {submitting ? "등록 중..." : `${validCount}건 일괄 등록`}
               </button>
-              <button
-                onClick={onCancel}
-                className="flex-1 bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors"
-              >
+              <button onClick={onCancel} className="flex-1 bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors">
                 취소
               </button>
             </div>
@@ -324,10 +360,7 @@ export default function AssetBulkUpload({ onCancel }: AssetBulkUploadProps) {
       )}
 
       {rows.length === 0 && (
-        <button
-          onClick={onCancel}
-          className="w-full bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors"
-        >
+        <button onClick={onCancel} className="w-full bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors">
           취소
         </button>
       )}
