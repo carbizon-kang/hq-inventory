@@ -171,7 +171,7 @@ export default function SettingsPage() {
         {isAdmin && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-1">사용자 관리</h2>
-            <p className="text-xs text-gray-400 mb-4">가입한 사용자의 권한과 담당 지사를 설정합니다.</p>
+            <p className="text-xs text-gray-400 mb-4">가입한 사용자의 권한과 담당 부문을 설정합니다.</p>
             <ul className="space-y-2">
               {users.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg bg-gray-50 border border-gray-100">

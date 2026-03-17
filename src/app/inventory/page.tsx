@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Header from "@/components/layout/Header";
 import StatCard from "@/components/ui/StatCard";
 import { useAssets } from "@/lib/assetStore";
@@ -16,17 +17,6 @@ interface DivisionSummary {
   inUse: number;
   inStorage: number;
   inRepair: number;
-}
-
-// 품목별 그룹 (본부 컬럼 포함)
-interface AssetGroup {
-  name: string;
-  category: string;
-  total: number;
-  inUse: number;
-  inStorage: number;
-  inRepair: number;
-  byHQ: Record<string, number>;
 }
 
 function buildDivisionSummaries(
@@ -49,24 +39,6 @@ function buildDivisionSummaries(
   return Object.values(map).filter((d) => d.total > 0);
 }
 
-function groupAssets(assets: Asset[], branchHQMap: Record<string, string>): AssetGroup[] {
-  const map: Record<string, AssetGroup> = {};
-  for (const a of assets) {
-    const key = `${a.name}__${a.category}`;
-    if (!map[key]) {
-      map[key] = { name: a.name, category: a.category, total: 0, inUse: 0, inStorage: 0, inRepair: 0, byHQ: {} };
-    }
-    map[key].total++;
-    if (a.status === "사용중") map[key].inUse++;
-    else if (a.status === "보관중") map[key].inStorage++;
-    else map[key].inRepair++;
-    const hq = branchHQMap[a.branchId] || "미분류";
-    map[key].byHQ[hq] = (map[key].byHQ[hq] || 0) + 1;
-  }
-  return Object.values(map).sort((a, b) =>
-    a.category.localeCompare(b.category) || a.name.localeCompare(b.name)
-  );
-}
 
 export default function InventoryPage() {
   const { assets } = useAssets();
@@ -100,12 +72,6 @@ export default function InventoryPage() {
   const detailBranches = scopeBranches.filter((b) => (b.division || "미분류") === selectedDiv);
   const detailBranchIds = new Set(detailBranches.map((b) => b.id));
   const detailAssets = scopeAssets.filter((a) => detailBranchIds.has(a.branchId));
-  const detailHQMap: Record<string, string> = {};
-  for (const b of detailBranches) {
-    detailHQMap[b.id] = b.headquarters || "미분류";
-  }
-  const hqColumns = Array.from(new Set(detailBranches.map((b) => b.headquarters || "미분류")));
-  const groups = groupAssets(detailAssets, detailHQMap);
 
   // 전체 통계
   const scopeStats = selectedDiv
@@ -188,60 +154,62 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* 부문 상세 화면 */}
+        {/* 부문 상세 화면 - 개별 자산 목록 */}
         {selectedDiv && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedDiv} 자산 목록 <span className="text-gray-400 font-normal">({detailAssets.length}건)</span>
+              </span>
+            </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">자산번호</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">품명</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">카테고리</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-600">전체</th>
-                  <th className="text-center px-3 py-3 font-medium text-green-600">사용중</th>
-                  <th className="text-center px-3 py-3 font-medium text-blue-500">보관중</th>
-                  <th className="text-center px-3 py-3 font-medium text-yellow-500">수리/폐기</th>
-                  {hqColumns.map((hq) => (
-                    <th key={hq} className="text-center px-3 py-3 font-medium text-gray-400 whitespace-nowrap">
-                      {hq}
-                    </th>
-                  ))}
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">본부</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">지사</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">상태</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">구매일</th>
                 </tr>
               </thead>
               <tbody>
-                {groups.length === 0 ? (
+                {detailAssets.length === 0 ? (
                   <tr>
-                    <td colSpan={6 + hqColumns.length} className="text-center py-12 text-gray-400">
+                    <td colSpan={7} className="text-center py-12 text-gray-400">
                       해당 부문에 등록된 자산이 없습니다.
                     </td>
                   </tr>
                 ) : (
-                  groups.map((g) => (
-                    <tr key={`${g.name}__${g.category}`} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-800">{g.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{g.category}</td>
-                      <td className="px-3 py-3 text-center font-bold text-gray-800">{g.total}</td>
-                      <td className="px-3 py-3 text-center text-green-600 font-medium">{g.inUse || <span className="text-gray-200">-</span>}</td>
-                      <td className="px-3 py-3 text-center text-blue-500 font-medium">{g.inStorage || <span className="text-gray-200">-</span>}</td>
-                      <td className="px-3 py-3 text-center text-yellow-500 font-medium">{g.inRepair || <span className="text-gray-200">-</span>}</td>
-                      {hqColumns.map((hq) => (
-                        <td key={hq} className="px-3 py-3 text-center">
-                          {g.byHQ[hq] ? (
-                            <span className="inline-block bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-xs font-medium">
-                              {g.byHQ[hq]}대
-                            </span>
-                          ) : (
-                            <span className="text-gray-200">-</span>
-                          )}
+                  detailAssets.map((a) => {
+                    const branch = detailBranches.find((b) => b.id === a.branchId);
+                    return (
+                      <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <Link href={`/assets/${a.id}`} className="text-blue-600 hover:underline font-mono text-xs font-medium">
+                            {a.assetNumber}
+                          </Link>
                         </td>
-                      ))}
-                    </tr>
-                  ))
+                        <td className="px-4 py-3 font-medium text-gray-800">{a.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{a.category}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{branch?.headquarters || "-"}</td>
+                        <td className="px-4 py-3 text-gray-700">{branch?.name || "-"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            a.status === "사용중" ? "bg-green-100 text-green-700" :
+                            a.status === "보관중" ? "bg-blue-100 text-blue-700" :
+                            a.status === "수리중" ? "bg-yellow-100 text-yellow-700" :
+                            "bg-red-100 text-red-700"
+                          }`}>{a.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{a.purchaseDate || "-"}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
-            <p className="px-4 py-2 text-xs text-gray-400 border-t border-gray-50">
-              * 수량은 유형자산 등록/삭제 시 자동으로 반영됩니다.
-            </p>
           </div>
         )}
       </main>

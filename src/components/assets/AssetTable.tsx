@@ -48,31 +48,20 @@ export default function AssetTable({ assets, branches, isAdmin = false }: AssetT
   const { categories } = useCategories();
   const { divisions, getHQsByDivision, getTeamsByHQ } = useOrg();
 
-  const [search,         setSearch]         = useState("");
-  const [filterDiv,      setFilterDiv]      = useState("");
-  const [filterHQ,       setFilterHQ]       = useState("");
-  const [filterTeam,     setFilterTeam]     = useState("");
-  const [filterName,     setFilterName]     = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
-  const [filterBranch,   setFilterBranch]   = useState("");
-  const [filterStatus,   setFilterStatus]   = useState("");
+  // 초기값을 sessionStorage에서 직접 읽어 필터 상태 즉시 복원
+  const init = loadFilters();
+  const [search,         setSearch]         = useState(init.search);
+  const [filterDiv,      setFilterDiv]      = useState(init.filterDiv);
+  const [filterHQ,       setFilterHQ]       = useState(init.filterHQ);
+  const [filterTeam,     setFilterTeam]     = useState(init.filterTeam);
+  const [filterName,     setFilterName]     = useState(init.filterName);
+  const [filterCategory, setFilterCategory] = useState(init.filterCategory);
+  const [filterBranch,   setFilterBranch]   = useState(init.filterBranch);
+  const [filterStatus,   setFilterStatus]   = useState(init.filterStatus);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [qrAsset, setQrAsset] = useState<Asset | null>(null);
 
-  // 마운트 시 저장된 필터 복원
-  useEffect(() => {
-    const saved = loadFilters();
-    setSearch(saved.search);
-    setFilterDiv(saved.filterDiv);
-    setFilterHQ(saved.filterHQ);
-    setFilterTeam(saved.filterTeam);
-    setFilterName(saved.filterName);
-    setFilterCategory(saved.filterCategory);
-    setFilterBranch(saved.filterBranch);
-    setFilterStatus(saved.filterStatus);
-  }, []);
-
-  // 필터 변경 시 sessionStorage에 저장
+  // 필터 변경될 때마다 sessionStorage에 저장
   useEffect(() => {
     sessionStorage.setItem(FILTER_KEY, JSON.stringify({
       search, filterDiv, filterHQ, filterTeam,
