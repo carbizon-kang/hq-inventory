@@ -6,6 +6,7 @@ import { RentalItem } from "@/types";
 import { useRentals } from "@/lib/rentalStore";
 import { useBranches } from "@/lib/branchStore";
 import { useRentalEquipTypes } from "@/lib/rentalEquipTypeStore";
+import SearchSelect from "@/components/ui/SearchSelect";
 
 interface RentalFormProps {
   initial?: RentalItem;  // 수정 시 전달
@@ -87,12 +88,14 @@ export default function RentalForm({ initial, onSuccess }: RentalFormProps) {
       {/* 지사 */}
       <div>
         <label className={labelCls}>지사 <span className="text-red-500">*</span></label>
-        <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={inputCls}>
-          <option value="">지사 선택</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
+        <SearchSelect
+          options={branches.map((b) => ({ value: b.id, label: b.name }))}
+          value={branchId}
+          onChange={setBranchId}
+          placeholder="지사 검색..."
+          allLabel="지사 선택"
+          className="w-full"
+        />
       </div>
 
       {/* 장비 유형 */}
