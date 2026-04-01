@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import Header from "@/components/layout/Header";
 import StatCard from "@/components/ui/StatCard";
 import RentalTable from "@/components/rentals/RentalTable";
+import RentalForm from "@/components/rentals/RentalForm";
 import { useRentals } from "@/lib/rentalStore";
 import { useBranches } from "@/lib/branchStore";
 import { useAuth } from "@/lib/authStore";
@@ -12,6 +13,7 @@ export default function RentalsPage() {
   const { rentals } = useRentals();
   const { branches } = useBranches();
   const { isAdmin, currentUser } = useAuth();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // 부문 미지정(division="")이면 전체, 부문 지정이면 해당 부문만 표시
   const userDiv = currentUser?.division ?? "";
@@ -39,12 +41,12 @@ export default function RentalsPage() {
             <p className="text-sm text-gray-500 mt-1">복합기·정수기 등 렌트 장비 현황 및 비용 관리</p>
           </div>
           {isAdmin && (
-            <Link
-              href="/rentals/new"
+            <button
+              onClick={() => setShowAddModal(true)}
               className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               + 렌트 등록
-            </Link>
+            </button>
           )}
         </div>
 
@@ -58,6 +60,29 @@ export default function RentalsPage() {
 
         <RentalTable rentals={displayRentals} branches={displayBranches} isAdmin={isAdmin} />
       </main>
+
+      {/* 렌트 등록 모달 */}
+      {showAddModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">렌트 등록</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-light leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <RentalForm onSuccess={() => setShowAddModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

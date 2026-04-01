@@ -8,6 +8,7 @@ import { AssetProvider } from "@/lib/assetStore";
 import { ItemProvider } from "@/lib/itemStore";
 import { AuthProvider } from "@/lib/authStore";
 import { RentalProvider } from "@/lib/rentalStore";
+import { RentalEquipTypeProvider } from "@/lib/rentalEquipTypeStore";
 import { OrgProvider } from "@/lib/orgStore";
 import AuthGuard from "@/components/AuthGuard";
 
@@ -21,11 +22,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               <AssetProvider>
                 <ItemProvider>
                   <RentalProvider>
+                    <RentalEquipTypeProvider>
                     <OrgProvider>
                       <AuthGuard>
                         {children}
                       </AuthGuard>
                     </OrgProvider>
+                    </RentalEquipTypeProvider>
                   </RentalProvider>
                 </ItemProvider>
               </AssetProvider>

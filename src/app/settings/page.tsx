@@ -6,6 +6,7 @@ import { useCategories } from "@/lib/categoryStore";
 import { useItems } from "@/lib/itemStore";
 import { useAuth } from "@/lib/authStore";
 import { useOrg } from "@/lib/orgStore";
+import { useRentalEquipTypes } from "@/lib/rentalEquipTypeStore";
 
 export default function SettingsPage() {
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -18,6 +19,11 @@ export default function SettingsPage() {
   const [newItemPrefix, setNewItemPrefix] = useState("");
   const [itemError, setItemError] = useState("");
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
+
+  const { equipTypes, addEquipType, deleteEquipType } = useRentalEquipTypes();
+  const [newEquipTypeName, setNewEquipTypeName] = useState("");
+  const [equipTypeError, setEquipTypeError] = useState("");
+  const [confirmDeleteEquipTypeId, setConfirmDeleteEquipTypeId] = useState<string | null>(null);
 
   const { changePassword, isAdmin, currentUser, users, updateUser, deleteUser } = useAuth();
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
@@ -106,6 +112,20 @@ export default function SettingsPage() {
     await addCategory(trimmed);
     setNewName("");
     setError("");
+  }
+
+  async function handleAddEquipType(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = newEquipTypeName.trim();
+    if (!name) { setEquipTypeError("장비 유형 이름을 입력해 주세요."); return; }
+    if (equipTypes.some((t) => t.name === name)) { setEquipTypeError("이미 존재하는 유형입니다."); return; }
+    try {
+      await addEquipType(name);
+      setNewEquipTypeName("");
+      setEquipTypeError("");
+    } catch (err) {
+      setEquipTypeError(err instanceof Error ? err.message : "추가 실패");
+    }
   }
 
   async function handleAddDivision(e: React.FormEvent<HTMLFormElement>) {
@@ -492,6 +512,66 @@ export default function SettingsPage() {
                 ) : (
                   <button
                     onClick={() => setConfirmDeleteItemId(item.id)}
+                    className="text-xs text-red-400 hover:underline"
+                  >삭제</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 렌트 장비 유형 관리 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-1">렌트 장비 유형 관리</h2>
+          <p className="text-xs text-gray-400 mb-4">렌트 등록 시 선택할 수 있는 장비 유형을 관리합니다. (복합기·정수기 등)</p>
+
+          <form onSubmit={handleAddEquipType} className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newEquipTypeName}
+              onChange={(e) => { setNewEquipTypeName(e.target.value); setEquipTypeError(""); }}
+              placeholder="장비 유형 (예: 에어컨, 냉장고)"
+              className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                equipTypeError ? "border-red-400" : "border-gray-200"
+              }`}
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              + 추가
+            </button>
+          </form>
+          {equipTypeError && <p className="text-xs text-red-500 mb-3">{equipTypeError}</p>}
+
+          <ul className="space-y-2">
+            {equipTypes.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-100"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                  {t.isDefault && (
+                    <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">기본</span>
+                  )}
+                </div>
+                {t.isDefault ? (
+                  <span className="text-xs text-gray-300">삭제 불가</span>
+                ) : confirmDeleteEquipTypeId === t.id ? (
+                  <span className="flex items-center gap-2">
+                    <button
+                      onClick={() => { deleteEquipType(t.id); setConfirmDeleteEquipTypeId(null); }}
+                      className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition-colors"
+                    >삭제</button>
+                    <button
+                      onClick={() => setConfirmDeleteEquipTypeId(null)}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >취소</button>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDeleteEquipTypeId(t.id)}
                     className="text-xs text-red-400 hover:underline"
                   >삭제</button>
                 )}

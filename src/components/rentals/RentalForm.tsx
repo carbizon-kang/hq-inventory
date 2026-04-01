@@ -5,19 +5,21 @@ import { useRouter } from "next/navigation";
 import { RentalItem } from "@/types";
 import { useRentals } from "@/lib/rentalStore";
 import { useBranches } from "@/lib/branchStore";
+import { useRentalEquipTypes } from "@/lib/rentalEquipTypeStore";
 
 interface RentalFormProps {
   initial?: RentalItem;  // 수정 시 전달
+  onSuccess?: () => void; // 모달 등 인라인 사용 시 완료 콜백
 }
 
-const EQUIP_TYPES = ["복합기", "정수기", "기타"] as const;
 const WATER_TYPES = ["냉온정수기", "얼음정수기"] as const;
 const STATUS_LIST = ["렌트중", "만료", "해지"] as const;
 
-export default function RentalForm({ initial }: RentalFormProps) {
+export default function RentalForm({ initial, onSuccess }: RentalFormProps) {
   const router = useRouter();
   const { addRental, updateRental } = useRentals();
   const { branches } = useBranches();
+  const { equipTypes } = useRentalEquipTypes();
   const isEdit = !!initial;
 
   const [branchId, setBranchId]               = useState(initial?.branchId ?? "");
@@ -66,7 +68,11 @@ export default function RentalForm({ initial }: RentalFormProps) {
       } else {
         await addRental(payload);
       }
-      router.push("/rentals");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/rentals");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장 실패");
       setSubmitting(false);
@@ -92,18 +98,18 @@ export default function RentalForm({ initial }: RentalFormProps) {
       {/* 장비 유형 */}
       <div>
         <label className={labelCls}>장비 유형 <span className="text-red-500">*</span></label>
-        <div className="flex gap-3">
-          {EQUIP_TYPES.map((t) => (
-            <label key={t} className="flex items-center gap-1.5 cursor-pointer text-sm">
+        <div className="flex flex-wrap gap-3">
+          {equipTypes.map((t) => (
+            <label key={t.id} className="flex items-center gap-1.5 cursor-pointer text-sm">
               <input
                 type="radio"
                 name="equipType"
-                value={t}
-                checked={equipType === t}
-                onChange={() => { setEquipType(t); if (t !== "정수기") setWaterType(""); }}
+                value={t.name}
+                checked={equipType === t.name}
+                onChange={() => { setEquipType(t.name); if (t.name !== "정수기") setWaterType(""); }}
                 className="accent-blue-600"
               />
-              {t}
+              {t.name}
             </label>
           ))}
         </div>

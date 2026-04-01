@@ -83,8 +83,8 @@ export interface AssetTransfer {
   reason: string;
 }
 
-// 렌트 장비 유형
-export type RentalEquipType = "복합기" | "정수기" | "기타";
+// 렌트 장비 유형 (동적으로 관리되므로 string 타입 사용)
+export type RentalEquipType = string;
 
 // 정수기 세부 유형
 export type WaterPurifierType = "냉온정수기" | "얼음정수기";
