@@ -105,6 +105,7 @@ export interface RentalItem {
   deposit: boolean;              // 보증금 유무
   depositAmount: number;         // 보증금 금액 (0 = 없음)
   waterPurifierType: WaterPurifierType | "";  // 정수기 유형 (정수기만)
+  carUser: string;               // 법인차량 사용자 (법인차량만)
   status: RentalStatus;
   note: string;
 }

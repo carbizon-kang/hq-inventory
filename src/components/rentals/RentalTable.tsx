@@ -112,7 +112,7 @@ export default function RentalTable({ rentals, branches, isAdmin = false }: Rent
               <th className="text-left px-4 py-3 font-medium text-gray-500">월렌트비</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">렌트기간</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">보증금</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">정수기유형</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">정수기유형/사용자</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">상태</th>
               <th className="text-right px-4 py-3 font-medium text-gray-500">관리</th>
             </tr>
@@ -155,6 +155,8 @@ export default function RentalTable({ rentals, branches, isAdmin = false }: Rent
                   <td className="px-4 py-3 text-gray-600 text-xs">
                     {r.equipType === "정수기" && r.waterPurifierType ? (
                       <span className="bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">{r.waterPurifierType}</span>
+                    ) : r.equipType === "법인차량" && r.carUser ? (
+                      <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{r.carUser}</span>
                     ) : "-"}
                   </td>
                   <td className="px-4 py-3">

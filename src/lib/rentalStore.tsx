@@ -27,6 +27,7 @@ function rowToRental(r: Record<string, unknown>): RentalItem {
     deposit: (r.deposit as boolean) || false,
     depositAmount: (r.deposit_amount as number) || 0,
     waterPurifierType: (r.water_purifier_type as RentalItem["waterPurifierType"]) || "",
+    carUser: (r.car_user as string) || "",
     status: r.status as RentalItem["status"],
     note: (r.note as string) || "",
   };
@@ -65,6 +66,7 @@ export function RentalProvider({ children }: { children: ReactNode }) {
       deposit: item.deposit,
       deposit_amount: item.depositAmount,
       water_purifier_type: item.waterPurifierType,
+      car_user: item.carUser,
       status: item.status,
       note: item.note,
     });
@@ -84,6 +86,7 @@ export function RentalProvider({ children }: { children: ReactNode }) {
     if (data.deposit !== undefined) row.deposit = data.deposit;
     if (data.depositAmount !== undefined) row.deposit_amount = data.depositAmount;
     if (data.waterPurifierType !== undefined) row.water_purifier_type = data.waterPurifierType;
+    if (data.carUser !== undefined) row.car_user = data.carUser;
     if (data.status !== undefined) row.status = data.status;
     if (data.note !== undefined) row.note = data.note;
     const { error } = await supabase.from("rentals").update(row).eq("id", id);

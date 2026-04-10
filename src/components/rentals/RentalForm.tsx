@@ -33,6 +33,7 @@ export default function RentalForm({ initial, onSuccess }: RentalFormProps) {
   const [deposit, setDeposit]                 = useState(initial?.deposit ?? false);
   const [depositAmount, setDepositAmount]     = useState(initial?.depositAmount ? String(initial.depositAmount) : "");
   const [waterType, setWaterType]             = useState<RentalItem["waterPurifierType"]>(initial?.waterPurifierType ?? "");
+  const [carUser, setCarUser]                 = useState(initial?.carUser ?? "");
   const [status, setStatus]                   = useState<RentalItem["status"]>(initial?.status ?? "렌트중");
   const [note, setNote]                       = useState(initial?.note ?? "");
   const [error, setError]                     = useState("");
@@ -58,6 +59,7 @@ export default function RentalForm({ initial, onSuccess }: RentalFormProps) {
       deposit,
       depositAmount: deposit && depositAmount ? parseInt(depositAmount.replace(/,/g, ""), 10) : 0,
       waterPurifierType: equipType === "정수기" ? waterType : "",
+      carUser: equipType === "법인차량" ? carUser.trim() : "",
       status,
       note: note.trim(),
     };
@@ -137,6 +139,20 @@ export default function RentalForm({ initial, onSuccess }: RentalFormProps) {
               </label>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* 사용자 (법인차량 선택 시만 표시) */}
+      {equipType === "법인차량" && (
+        <div>
+          <label className={labelCls}>사용자</label>
+          <input
+            type="text"
+            value={carUser}
+            onChange={(e) => setCarUser(e.target.value)}
+            placeholder="예) 홍길동"
+            className={inputCls}
+          />
         </div>
       )}
 
