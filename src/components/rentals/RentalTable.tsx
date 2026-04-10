@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { RentalItem, Branch } from "@/types";
 import { useRentals } from "@/lib/rentalStore";
+import { useRentalEquipTypes } from "@/lib/rentalEquipTypeStore";
 import SearchSelect from "@/components/ui/SearchSelect";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ function formatFee(n: number) {
 
 export default function RentalTable({ rentals, branches, isAdmin = false }: RentalTableProps) {
   const { deleteRental } = useRentals();
+  const { equipTypes } = useRentalEquipTypes();
   const [filterBranch, setFilterBranch] = useState("");
   const [filterEquip, setFilterEquip] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -70,8 +72,8 @@ export default function RentalTable({ rentals, branches, isAdmin = false }: Rent
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             <option value="">전체 장비</option>
-            {["복합기", "정수기", "기타"].map((e) => (
-              <option key={e} value={e}>{e}</option>
+            {equipTypes.map((e) => (
+              <option key={e.id} value={e.name}>{e.name}</option>
             ))}
           </select>
           <select
